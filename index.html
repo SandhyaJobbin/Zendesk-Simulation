@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fraud Support Zendesk Simulator</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --navy: #0f4c75; --blue: #3282b8; --ink: #1a1a2e; --muted: #64748b;
+    --line: #e2e8f0; --bg: #f5f7fa;
+  }
+  body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--ink); min-height: 100vh; }
+  .hidden { display: none !important; }
+
+  header {
+    background: #fff; border-bottom: 1px solid var(--line); padding: 12px 24px;
+    display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 50;
+  }
+  .logo { display: flex; align-items: center; gap: 10px; }
+  .logo-icon { width: 36px; height: 36px; border-radius: 8px; background: linear-gradient(135deg, var(--navy), var(--blue)); display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 16px; }
+  .logo-text { font-size: 16px; font-weight: 700; }
+  .logo-sub { font-size: 11px; color: var(--muted); font-weight: 400; }
+
+  .btn-primary { background: linear-gradient(135deg, var(--navy), var(--blue)); color: #fff; border: none; border-radius: 8px; padding: 12px 28px; font-size: 15px; font-weight: 600; cursor: pointer; width: 100%; transition: opacity .2s; }
+  .btn-primary:hover { opacity: .92; }
+  .btn-primary:disabled { opacity: .5; cursor: not-allowed; }
+  .btn-primary.auto { width: auto; }
+  .btn-outline { background: transparent; color: var(--blue); border: 1.5px solid var(--blue); border-radius: 8px; padding: 8px 20px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all .2s; }
+  .btn-outline:hover { background: #f0f9ff; }
+  .btn-danger { color: #dc2626; border-color: #dc2626; font-size: 12px; padding: 6px 14px; }
+  .btn-danger:hover { background: #fef2f2; }
+
+  .center { display: flex; justify-content: center; align-items: center; min-height: calc(100vh - 57px); padding: 24px; }
+  .card { background: #fff; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.06); padding: 32px; max-width: 440px; width: 100%; }
+  .card.wide { max-width: 640px; }
+
+  .field { display: flex; flex-direction: column; gap: 4px; }
+  label.lbl { font-size: 13px; font-weight: 600; color: #374151; }
+  input.inp { width: 100%; padding: 10px 14px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 14px; outline: none; transition: border .2s; }
+  input.inp:focus { border-color: var(--blue); }
+  .form-stack { display: flex; flex-direction: column; gap: 16px; }
+
+  .head-icon { width: 56px; height: 56px; border-radius: 14px; background: linear-gradient(135deg, var(--navy), var(--blue)); margin: 0 auto 12px; display: flex; align-items: center; justify-content: center; }
+  .head-title { font-size: 22px; font-weight: 700; }
+  .head-sub { color: var(--muted); font-size: 13px; margin-top: 6px; }
+  .tcenter { text-align: center; }
+
+  /* modal */
+  .overlay { position: fixed; inset: 0; background: rgba(0,0,0,.45); display: flex; align-items: center; justify-content: center; z-index: 100; padding: 16px; }
+  .err { color: #dc2626; font-size: 13px; margin: 4px 0 0; }
+
+  /* admin */
+  .admin-wrap { padding: 24px; max-width: 1100px; margin: 0 auto; }
+  .admin-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px; }
+  .pill { background: #e0f2fe; color: #0369a1; padding: 6px 16px; border-radius: 20px; font-size: 13px; font-weight: 600; }
+  table { width: 100%; border-collapse: separate; border-spacing: 0; background: #fff; border-radius: 12px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+  th { padding: 12px 16px; text-align: left; font-size: 12px; font-weight: 700; color: #475569; border-bottom: 1px solid var(--line); white-space: nowrap; background: #f8fafc; }
+  td { padding: 10px 16px; font-size: 13px; border-bottom: 1px solid #f1f5f9; }
+  .score-pill { padding: 3px 10px; border-radius: 12px; font-size: 12px; font-weight: 600; }
+  .empty { text-align: center; padding: 48px; color: #94a3b8; }
+  .scroll-x { overflow-x: auto; }
+
+  /* instructions */
+  .info-box { background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 10px; padding: 20px; margin-bottom: 20px; }
+  .info-box h3 { font-size: 16px; color: #0c4a6e; margin-bottom: 12px; }
+  .info-box .txt { font-size: 14px; color: #1e3a5f; line-height: 1.8; }
+  .rules-box { background: #f8fafc; border-radius: 10px; padding: 20px; margin-bottom: 24px; }
+  .rules-box h3 { font-size: 16px; margin-bottom: 12px; }
+  .rule { display: flex; gap: 10px; align-items: flex-start; font-size: 14px; color: #334155; margin-bottom: 10px; }
+  .rule-num { min-width: 22px; height: 22px; border-radius: 6px; background: #e0f2fe; color: #0369a1; display: inline-flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; }
+  .row-gap { display: flex; gap: 12px; }
+
+  /* quiz progress */
+  .progress { height: 3px; background: var(--line); }
+  .progress > div { height: 100%; background: linear-gradient(90deg, var(--navy), var(--blue)); transition: width .4s; }
+  .timer { background: #f1f5f9; padding: 5px 12px; border-radius: 8px; font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; color: #334155; }
+
+  .quiz-wrap { padding: 16px; max-width: 1240px; margin: 0 auto; }
+
+  /* zendesk ticket */
+  .ticket { background: #fff; border-radius: 10px; border: 1px solid var(--line); box-shadow: 0 1px 3px rgba(0,0,0,.08); overflow: hidden; margin-bottom: 20px; }
+  .tk-tabbar { background: #1f2733; padding: 8px 16px; display: flex; align-items: center; gap: 12px; color: #e5e7eb; font-size: 13px; flex-wrap: wrap; }
+  .tk-tab { background: #2d3748; padding: 4px 12px; border-radius: 6px; display: flex; align-items: center; gap: 8px; }
+  .tk-orgrow { background: #f8fafc; border-bottom: 1px solid var(--line); padding: 10px 16px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .badge-open { background: #ef4444; color: #fff; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 700; }
+  .tk-body { display: flex; flex-wrap: wrap; align-items: stretch; }
+  .tk-left { width: 240px; min-width: 220px; border-right: 1px solid #eef2f7; padding: 16px; flex-shrink: 0; background: #fcfcfd; }
+  .tk-center { flex: 1; min-width: 300px; padding: 16px 20px; background: #fff; }
+  .tk-right { width: 210px; min-width: 190px; border-left: 1px solid #eef2f7; padding: 16px; flex-shrink: 0; background: #fcfcfd; }
+  .side-lbl { font-weight: 700; color: #6b7280; font-size: 11px; margin-bottom: 6px; display: block; }
+  .side-box { border: 1px solid #d1d5db; border-radius: 6px; padding: 8px 10px; font-size: 12.5px; color: #111827; background: #fff; display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+  .side-box .val { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .side-group { margin-bottom: 16px; }
+  .take-it { color: var(--blue); float: right; font-weight: 600; }
+  .tag { background: #e8f0fe; color: #1e40af; padding: 3px 8px; border-radius: 4px; font-size: 11px; display: inline-flex; align-items: center; gap: 4px; }
+  .tag .x { color: #93a3b8; }
+  .type-badge { padding: 3px 10px; border-radius: 4px; font-size: 11px; font-weight: 700; }
+  .type-owner { background: #fef3c7; color: #92400e; }
+  .type-user { background: #dbeafe; color: #1e40af; }
+
+  .req-title { font-weight: 700; font-size: 14px; color: #1e293b; }
+  .refid { font-size: 11px; color: #94a3b8; margin: 4px 0; }
+  .meta-row { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; }
+  .meta-27 { background: #fee2e2; color: #dc2626; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 700; }
+  .meta-txt { font-size: 12px; color: var(--muted); }
+  .see-oldest { display: flex; justify-content: center; margin: 10px 0; }
+  .see-oldest span { background: var(--blue); color: #fff; padding: 6px 16px; border-radius: 20px; font-size: 12px; font-weight: 600; display: flex; align-items: center; gap: 6px; }
+  .msg { background: #f8fafc; border-radius: 8px; padding: 16px; font-size: 13.5px; line-height: 1.7; color: #334155; white-space: pre-wrap; border: 1px solid #eef2f7; }
+  .msg-head { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+  .avatar { width: 28px; height: 28px; border-radius: 50%; background: var(--blue); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; flex-shrink: 0; }
+  .agent-sig { background: #fef9ec; border-radius: 8px; padding: 16px; margin-top: 10px; font-size: 13px; line-height: 1.7; color: #57492b; white-space: pre-wrap; border: 1px solid #fde9c8; }
+  .internal-note { margin-top: 12px; background: #fffbeb; border-radius: 8px; padding: 12px; font-size: 12px; color: #92400e; border: 1px solid #fde68a; }
+  .r-item { margin-bottom: 14px; }
+  .r-lbl { font-size: 11px; color: #94a3b8; margin-bottom: 2px; }
+  .r-val { font-size: 12px; word-break: break-all; }
+  .notes-box { border: 1px solid #d1d5db; border-radius: 6px; padding: 8px 10px; font-size: 11px; color: #9ca3af; min-height: 40px; }
+  .tk-bottom { border-top: 1px solid var(--line); padding: 8px 16px; background: #f8fafc; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
+  .submit-btn { background: var(--navy); color: #fff; padding: 6px 16px; border-radius: 6px; font-size: 12px; font-weight: 600; }
+
+  /* question */
+  .qcard { background: #fff; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,.08); padding: 24px; border: 1px solid var(--line); }
+  .qtitle { font-size: 16px; font-weight: 700; color: var(--navy); margin-bottom: 16px; }
+  .qtitle .qnum { color: #94a3b8; font-weight: 400; font-size: 13px; }
+  .options { display: flex; flex-direction: column; gap: 10px; }
+  .option { background: #f8fafc; border: 1px solid var(--line); border-radius: 10px; padding: 12px 16px; cursor: pointer; display: flex; align-items: center; gap: 12px; font-size: 14px; color: #1e293b; transition: all .12s; }
+  .option:hover { border-color: #cbd5e1; }
+  .option.selected { background: #e0f2fe; border: 1.5px solid var(--blue); color: #0c4a6e; }
+  .option.correct { background: #dcfce7; border: 1.5px solid #22c55e; color: #166534; }
+  .option.wrong { background: #fee2e2; border: 1.5px solid #ef4444; color: #991b1b; }
+  .option.locked { cursor: default; }
+  .chip { width: 28px; height: 28px; border-radius: 8px; background: #e2e8f0; color: #64748b; display: inline-flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; flex-shrink: 0; }
+  .chip.sel { background: var(--blue); color: #fff; }
+  .chip.cor { background: #22c55e; color: #fff; }
+  .chip.wr { background: #ef4444; color: #fff; }
+  .opt-text { font-weight: 500; }
+  .explain { margin-top: 16px; border-radius: 10px; padding: 16px; font-size: 13.5px; line-height: 1.6; }
+  .explain.good { background: #f0fdf4; border: 1px solid #bbf7d0; }
+  .explain.bad { background: #fef2f2; border: 1px solid #fecaca; }
+  .q-actions { margin-top: 20px; display: flex; justify-content: flex-end; gap: 12px; }
+
+  /* result */
+  .result-circle { width: 72px; height: 72px; border-radius: 50%; margin: 0 auto 16px; display: flex; align-items: center; justify-content: center; font-size: 32px; font-weight: 800; }
+  .grade-pill { display: inline-block; padding: 4px 16px; border-radius: 20px; font-size: 14px; font-weight: 700; margin-bottom: 16px; }
+  .detail-box { background: #f8fafc; border-radius: 10px; padding: 16px; text-align: left; margin: 16px 0 20px; }
+  .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 24px; font-size: 13px; }
+  .breakdown { text-align: left; margin-bottom: 20px; }
+  .breakdown h4 { font-size: 14px; font-weight: 700; color: #475569; margin-bottom: 10px; }
+  .b-item { display: flex; align-items: center; justify-content: space-between; padding: 8px 12px; border-radius: 8px; font-size: 13px; margin-bottom: 6px; }
+
+  @media (max-width: 720px) {
+    .tk-left, .tk-right { width: 100%; border: none; border-bottom: 1px solid #eef2f7; }
+    .detail-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<script>
+const ADMIN_PASSWORD = "Rabi@behera";
+
+const QUESTIONS = [
+  { id:1, ticketId:"#3454342", requester:"john.martinez@gmail.com", requesterName:"John Martinez",
+    topic:"User Review Status", assignee:"Fraud Sup.../Mengani...", form:"Ticket",
+    tags:["fs_status-of-my-review","agent_copilot_enabled"], localTime:"Tue, 14:22 EST",
+    language:"English (United States)", refId:"11887087 [ ref:!00DA00I0Rf.!5...",
+    emailBody:"Hello,\n\nI submitted a review for The Grand Palace Hotel about 2 weeks ago and it still hasn't appeared on the listing. Can you please check the status of my review? My username is JohnM_Traveler.\n\nThank you,\nJohn Martinez",
+    agentSig:"Best regards,\n\nSravan\n\nTripadvisor Support Team", ticketType:"user",
+    question:"What is the first step you should take for this ticket?",
+    options:["Immediately publish the review","Check the user's review status in the moderation queue","Escalate to T2 for review dispute","Send a generic response asking user to resubmit"],
+    correctIndex:1, explanation:"For 'Status of my review' tickets from users, the first step is to check the review's current status in the moderation queue before taking any action." },
+  { id:2, ticketId:"#4521187", requester:"owner@grandhotel.com", requesterName:"Rajesh Kumar",
+    topic:"Review Dispute", assignee:"Fraud Sup.../Mengani...", form:"Ticket",
+    tags:["3","agent_copilot_enabled","review_dispute","do-not-send-survey"], localTime:"Mon, 11:02 IST",
+    language:"English (India)", refId:"12093847 [ ref:!00DA00I0Rf.!5...",
+    emailBody:"Dear Tripadvisor Support,\n\nI am the owner of Grand Heritage Resort (Listing ID: 1928374). A guest posted a defamatory review claiming our hotel had bed bugs, which is completely false. We had pest control done last week and have certificates to prove it. Please remove this review immediately.\n\nRegards,\nRajesh Kumar\nGrand Heritage Resort",
+    agentSig:"Best regards,\n\nMoseen\n\nTripadvisor Support Team", ticketType:"owner",
+    internalNote:"Owner verified via OT. Property affiliation confirmed.",
+    question:"After verifying owner & property affiliation via Owner Tool (OT), what should you do with this review dispute ticket?",
+    options:["Remove the review immediately as owner requested","Escalate to T2 for confirmation on review dispute","Ask the owner to respond publicly to the review","Close the ticket as no action needed"],
+    correctIndex:1, explanation:"Review dispute tickets from owners must always be escalated to T2 for confirmation. Agents cannot remove reviews on their own judgment." },
+  { id:3, ticketId:"#7823451", requester:"manager@seasideinn.co.uk", requesterName:"Sarah Thompson",
+    topic:"Missing Guest Reviews", assignee:"Fraud Sup.../Mengani...", form:"Ticket",
+    tags:["3","agent_copilot_enabled","missing_reviews"], localTime:"Wed, 09:15 GMT",
+    language:"English (United Kingdom)", refId:"13847562 [ ref:!00DA00I0Rf.!5...",
+    emailBody:"Hi Team,\n\nSeveral of our guests have told us they left reviews for Seaside Inn (ID: 5567823) but these reviews are not showing up on our listing. In the past month, at least 5 guests said they posted reviews. Our ranking has dropped because of this.\n\nPlease investigate.\n\nBest,\nSarah Thompson",
+    agentSig:"Best regards,\n\nPriya\n\nTripadvisor Support Team", ticketType:"owner",
+    question:"What are the first TWO steps before investigating the missing reviews?",
+    options:["Check owner affiliation and property affiliation via Owner Tool (OT)","Directly search for the missing reviews in moderation queue","Escalate to T2 immediately","Ask the owner to provide guest email addresses"],
+    correctIndex:0, explanation:"For any owner ticket, the first steps are always: 1) Check owner affiliation, and 2) Check property affiliation via Owner Tool (OT) to verify the owner before proceeding." },
+  { id:4, ticketId:"#6190234", requester:"lisa.wong@yahoo.com", requesterName:"Lisa Wong",
+    topic:"Allegation of Fraud", assignee:"Fraud Sup.../Mengani...", form:"Ticket",
+    tags:["fs_allegation-of-fraud","agent_copilot_enabled"], localTime:"Thu, 16:45 PST",
+    language:"English (United States)", refId:"14562398 [ ref:!00DA00I0Rf.!5...",
+    emailBody:"Dear Tripadvisor,\n\nI believe the Blue Ocean Resort is posting fake reviews. I stayed there last month and the experience was terrible, but they have hundreds of 5-star reviews that seem fabricated. The writing style in many reviews is identical.\n\nPlease investigate this property.\n\nThank you,\nLisa Wong",
+    agentSig:"Best regards,\n\nAmit\n\nTripadvisor Support Team", ticketType:"user",
+    question:"This is an 'Allegation of Fraud' ticket from a user. What is the correct approach?",
+    options:["Remove all 5-star reviews from the property","Investigate the property's review patterns and escalate findings to the fraud investigation team","Tell the user that Tripadvisor cannot investigate based on user complaints","Immediately penalize the property listing"],
+    correctIndex:1, explanation:"Allegation of Fraud tickets from users require investigation of the property's review patterns. Findings should be documented and escalated to the fraud investigation team." },
+  { id:5, ticketId:"#9034521", requester:"info@mountainlodge.com", requesterName:"David Brown",
+    topic:"Ranking Drop", assignee:"Fraud Sup.../Mengani...", form:"Ticket",
+    tags:["3","agent_copilot_enabled","ranking_drop"], localTime:"Fri, 10:30 MST",
+    language:"English (United States)", refId:"15238947 [ ref:!00DA00I0Rf.!5...",
+    emailBody:"Hello Support,\n\nOur Mountain Lodge (ID: 8834521) has dropped from #3 to #47 in our area rankings overnight. We haven't received any negative reviews recently and our service quality hasn't changed. We suspect competitor manipulation.\n\nThis is severely impacting our bookings.\n\nDavid Brown\nMountain Lodge",
+    agentSig:"Best regards,\n\nKiran\n\nTripadvisor Support Team", ticketType:"owner",
+    question:"After verifying owner and property affiliation, what should you check for a ranking drop complaint?",
+    options:["Manually adjust the property's ranking back to #3","Check if there are any penalties, warning letters, or fraud flags on the property, and review recent activity","Tell the owner rankings are automated and nothing can be done","Escalate to T2 as a review dispute"],
+    correctIndex:1, explanation:"For ranking drop tickets, after owner/property verification, check for any penalties, warning letters, or fraud flags that may have caused the drop." },
+  { id:6, ticketId:"#2345678", requester:"gm@luxurypalace.com", requesterName:"Priya Sharma",
+    topic:"Warning Letter", assignee:"Fraud Sup.../Mengani...", form:"Ticket",
+    tags:["3","agent_copilot_enabled","warning_letter"], localTime:"Mon, 13:00 IST",
+    language:"English (India)", refId:"16847293 [ ref:!00DA00I0Rf.!5...",
+    emailBody:"Dear Tripadvisor Team,\n\nWe received a warning letter regarding suspected review fraud on our property Luxury Palace Hotel (ID: 3345612). We have never engaged in any fraudulent review activity. We believe a former disgruntled employee may have solicited reviews without our knowledge.\n\nWe request a review of this warning.\n\nRegards,\nPriya Sharma",
+    agentSig:"Best regards,\n\nRahul\n\nTripadvisor Support Team", ticketType:"owner",
+    question:"The owner received a warning letter and claims innocence. After verification via OT, what is the correct action?",
+    options:["Remove the warning letter immediately based on the owner's claim","Document the owner's response, verify the warning details, and follow the warning letter response protocol","Ignore the ticket as warnings are final","Escalate to T2 as a review dispute"],
+    correctIndex:1, explanation:"Warning letter responses require documentation of the owner's explanation, verification of warning details, and following the standard warning letter response protocol." },
+  { id:7, ticketId:"#5567890", requester:"resort@beachparadise.com", requesterName:"Carlos Mendez",
+    topic:"Blackmailing", assignee:"Fraud Sup.../Mengani...", form:"Ticket",
+    tags:["3","agent_copilot_enabled","blackmailing"], localTime:"Tue, 08:45 CDT",
+    language:"English (United States)", refId:"17293846 [ ref:!00DA00I0Rf.!5...",
+    emailBody:"URGENT - Tripadvisor Support,\n\nA guest is blackmailing us. They are threatening to post a negative review unless we give them a full refund for their 7-night stay. They sent us screenshots of a draft negative review and demanded $2,000.\n\nWe have email proof. Property: Beach Paradise Resort (ID: 7789012).\n\nCarlos Mendez",
+    agentSig:"Best regards,\n\nDeepak\n\nTripadvisor Support Team", ticketType:"owner",
+    question:"This is a blackmailing complaint. After owner/property verification, what is the priority action?",
+    options:["Tell the owner to pay the guest to avoid negative review","Collect evidence (screenshots, emails) from the owner and escalate to the fraud/blackmail investigation team","Preemptively block the guest from posting any review","Close the ticket as this is a dispute between owner and guest"],
+    correctIndex:1, explanation:"Blackmailing cases require collecting all available evidence from the owner and escalating to the fraud/blackmail investigation team." },
+  { id:8, ticketId:"#8901234", requester:"frontdesk@cityhotel.com", requesterName:"Ahmed Hassan",
+    topic:"Live Site Issue", assignee:"Fraud Sup.../Mengani...", form:"Ticket",
+    tags:["3","agent_copilot_enabled","live_site_issue"], localTime:"Wed, 17:30 EET",
+    language:"English (United States)", refId:"18473926 [ ref:!00DA00I0Rf.!5...",
+    emailBody:"Hello,\n\nOur property City Center Hotel (ID: 4456789) is showing incorrect photos on the live Tripadvisor site. The main photo is from a completely different hotel and our contact number is wrong. This has been live for 3 days.\n\nPlease correct this immediately.\n\nAhmed Hassan",
+    agentSig:"Best regards,\n\nSneha\n\nTripadvisor Support Team", ticketType:"owner",
+    question:"For this live site issue, after owner/property verification, what is the correct workflow?",
+    options:["Edit the listing directly from your agent dashboard","Verify the reported issues on the live site, document them, and escalate to the content/technical team for correction","Ask the owner to update the photos through their Management Center","Close the ticket as photo issues resolve automatically"],
+    correctIndex:1, explanation:"Live site issues require verification on the actual live site, documentation of the discrepancies, and escalation to the content/technical team." },
+  { id:9, ticketId:"#1234509", requester:"travel_mike@outlook.com", requesterName:"Mike Johnson",
+    topic:"User Review Status", assignee:"Fraud Sup.../Mengani...", form:"Ticket",
+    tags:["fs_status-of-my-review","agent_copilot_enabled","ccs_removed"], localTime:"Thu, 12:15 CST",
+    language:"English (United States)", refId:"19384756 [ ref:!00DA00I0Rf.!5...",
+    emailBody:"Hi,\n\nI wrote a review for Oceanview Resort 3 weeks ago. I got an email saying it was published but now I can't find it on the listing page. Did you remove my review? I want to know why.\n\nMike Johnson",
+    agentSig:"Best regards,\n\nVijay\n\nTripadvisor Support Team", ticketType:"user",
+    question:"The user claims their published review disappeared. What should you investigate?",
+    options:["Republish the review immediately without checking","Check the review status in moderation tools — it may have been removed for policy violations or flagged by automated systems","Tell the user to write a new review","Escalate to T2 as a review dispute"],
+    correctIndex:1, explanation:"When a user reports a disappeared review, check the review's current status in moderation tools. It may have been removed for policy violations or flagged by automated fraud detection." },
+  { id:10, ticketId:"#6789012", requester:"owner@hilltopresort.com", requesterName:"Maria Garcia",
+    topic:"Fraud Letter", assignee:"Fraud Sup.../Mengani...", form:"Ticket",
+    tags:["3","agent_copilot_enabled","fraud_letter","do-not-send-survey"], localTime:"Fri, 09:00 PST",
+    language:"English (United States)", refId:"20475839 [ ref:!00DA00I0Rf.!5...",
+    emailBody:"Dear Tripadvisor,\n\nWe received a fraud penalty letter stating our property Hilltop Resort & Spa (ID: 9912345) has been penalized for review manipulation. Our bubble rating has been reduced and a red penalty badge is showing.\n\nWe have been in business for 20 years and never engaged in fraud. We have hired a lawyer and will take legal action if this is not resolved.\n\nMaria Garcia",
+    agentSig:"Best regards,\n\nAnjali\n\nTripadvisor Support Team", ticketType:"owner",
+    question:"The owner received a fraud penalty letter and is threatening legal action. After verification, what is the correct approach?",
+    options:["Remove the penalty immediately due to legal threat","Follow fraud letter protocol — document the response, do NOT remove penalty based on threats, and guide the owner through the formal appeal process","Transfer the ticket to the legal department","Ignore the legal threat and close the ticket"],
+    correctIndex:1, explanation:"Fraud letter responses follow a strict protocol. Penalties cannot be removed based on threats or claims alone. Guide the owner through the formal appeal process." }
+];
+
+/* ---- state ---- */
+const store = {
+  get(){ try { return JSON.parse(localStorage.getItem("fs_participants")) || []; } catch { return []; } },
+  set(v){ try { localStorage.setItem("fs_participants", JSON.stringify(v)); } catch {} }
+};
+let state = {
+  screen: "login",
+  user: { name:"", empId:"", country:"", trainer:"" },
+  showAdmin: false, adminPw:"", adminErr:"",
+  qi: 0, score: 0, selected: null, answered: false, answers: [], timer: 0,
+  timerId: null
+};
+const pad = n => String(n).padStart(2,"0");
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+/* ---- timer ---- */
+function startTimer(){ stopTimer(); state.timerId = setInterval(()=>{ state.timer++; const el=document.getElementById("timer"); if(el) el.textContent = "⏱ "+pad(Math.floor(state.timer/60))+":"+pad(state.timer%60); },1000); }
+function stopTimer(){ if(state.timerId){ clearInterval(state.timerId); state.timerId=null; } }
+
+/* ---- navigation ---- */
+function go(screen){ state.screen = screen; render(); }
+
+function handleLogin(){
+  const u = state.user;
+  if(!u.name.trim()||!u.empId.trim()||!u.country.trim()||!u.trainer.trim()){
+    document.getElementById("login-err").textContent = "Please fill in all fields.";
+    return;
+  }
+  go("instructions");
+}
+function handleAdmin(){
+  if(state.adminPw === ADMIN_PASSWORD){ state.showAdmin=false; state.adminPw=""; state.adminErr=""; go("admin"); }
+  else { state.adminErr="Incorrect password"; render(); }
+}
+function startQuiz(){
+  state.qi=0; state.score=0; state.selected=null; state.answered=false; state.answers=[]; state.timer=0;
+  go("quiz"); startTimer();
+}
+function selectOption(i){ if(state.answered) return; state.selected=i; render(); }
+function submitAnswer(){
+  if(state.selected===null||state.answered) return;
+  stopTimer();
+  const q = QUESTIONS[state.qi];
+  const correct = state.selected===q.correctIndex;
+  if(correct) state.score++;
+  state.answered=true;
+  state.answers.push({ qIndex: state.qi, selected: state.selected, correct, time: state.timer });
+  render();
+}
+function nextQuestion(){
+  if(state.qi < QUESTIONS.length-1){
+    state.qi++; state.selected=null; state.answered=false; state.timer=0;
+    render(); startTimer();
+  } else {
+    const list = store.get();
+    list.push({ ...state.user, score: state.score, total: QUESTIONS.length,
+      pct: Math.round((state.score/QUESTIONS.length)*100), date: new Date().toLocaleString() });
+    store.set(list);
+    go("result");
+  }
+}
+function clearAdmin(){ if(confirm("Clear all records?")){ store.set([]); render(); } }
+function newSession(){ state.user={name:"",empId:"",country:"",trainer:""}; go("login"); }
+
+function downloadCert(){
+  const pct = Math.round((state.score/QUESTIONS.length)*100);
+  const grade = pct>=90?"Outstanding":pct>=70?"Good":pct>=50?"Satisfactory":"Needs Improvement";
+  const u = state.user;
+  const svg = '<?xml version="1.0" encoding="UTF-8"?>'+
+  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 566" width="800" height="566">'+
+  '<defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#0f4c75"/><stop offset="100%" stop-color="#1b262c"/></linearGradient></defs>'+
+  '<rect width="800" height="566" fill="url(#bg)" rx="12"/>'+
+  '<rect x="16" y="16" width="768" height="534" rx="8" fill="none" stroke="#3282b8" stroke-width="2" stroke-dasharray="8 4"/>'+
+  '<text x="400" y="70" text-anchor="middle" fill="#bbe1fa" font-family="Georgia,serif" font-size="14" letter-spacing="6">TRIPADVISOR FRAUD SUPPORT</text>'+
+  '<text x="400" y="120" text-anchor="middle" fill="#ffffff" font-family="Georgia,serif" font-size="32" font-weight="bold">Certificate of Completion</text>'+
+  '<line x1="250" y1="140" x2="550" y2="140" stroke="#3282b8" stroke-width="1"/>'+
+  '<text x="400" y="180" text-anchor="middle" fill="#bbe1fa" font-family="Arial,sans-serif" font-size="14">This is to certify that</text>'+
+  '<text x="400" y="220" text-anchor="middle" fill="#ffffff" font-family="Georgia,serif" font-size="28" font-weight="bold">'+esc(u.name)+'</text>'+
+  '<text x="400" y="250" text-anchor="middle" fill="#bbe1fa" font-family="Arial,sans-serif" font-size="13">Employee ID: '+esc(u.empId)+'  |  Country: '+esc(u.country)+'</text>'+
+  '<text x="400" y="290" text-anchor="middle" fill="#bbe1fa" font-family="Arial,sans-serif" font-size="14">has successfully completed the</text>'+
+  '<text x="400" y="320" text-anchor="middle" fill="#3282b8" font-family="Georgia,serif" font-size="20" font-weight="bold">Fraud Support Zendesk Simulation Assessment</text>'+
+  '<text x="400" y="370" text-anchor="middle" fill="#ffffff" font-family="Georgia,serif" font-size="42" font-weight="bold">'+state.score+'/'+QUESTIONS.length+'</text>'+
+  '<text x="400" y="400" text-anchor="middle" fill="#bbe1fa" font-family="Arial,sans-serif" font-size="16">Score: '+pct+'% — '+grade+'</text>'+
+  '<line x1="200" y1="430" x2="600" y2="430" stroke="#3282b8" stroke-width="1" opacity=".5"/>'+
+  '<text x="200" y="470" text-anchor="middle" fill="#bbe1fa" font-family="Arial,sans-serif" font-size="12">Trainer: '+esc(u.trainer)+'</text>'+
+  '<text x="400" y="470" text-anchor="middle" fill="#bbe1fa" font-family="Arial,sans-serif" font-size="12">Date: '+new Date().toLocaleDateString()+'</text>'+
+  '<text x="600" y="470" text-anchor="middle" fill="#bbe1fa" font-family="Arial,sans-serif" font-size="12">Sutherland</text>'+
+  '<text x="400" y="520" text-anchor="middle" fill="#3282b8" font-family="Georgia,serif" font-size="11" font-style="italic">Fraud Support Training Program — Powered by Sutherland</text>'+
+  '</svg>';
+  const blob = new Blob([svg], { type:"image/svg+xml" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = "FraudSupport_Certificate_"+u.name.replace(/\s/g,"_")+".svg";
+  a.click(); URL.revokeObjectURL(url);
+}
+
+/* ---- input binding ---- */
+function bindInput(id, key){
+  const el = document.getElementById(id);
+  if(el) el.addEventListener("input", e => { state.user[key] = e.target.value; });
+}
+
+/* ---- header ---- */
+function header(sub, right){
+  return '<header><div class="logo"><div class="logo-icon">FS</div><div><div class="logo-text">Fraud Support Simulator<span class="logo-sub"> — '+sub+'</span></div></div></div>'+(right||'')+'</header>';
+}
+
+/* ---- renderers ---- */
+function renderLogin(){
+  return header("Tripadvisor", '<button class="btn-outline" onclick="state.showAdmin=true;render()">Admin</button>')+
+  '<div class="center"><div class="card"><div class="tcenter" style="margin-bottom:24px">'+
+  '<div class="head-icon"><svg width="28" height="28" fill="none" viewBox="0 0 24 24"><path d="M12 12c2.7 0 5-2.3 5-5s-2.3-5-5-5-5 2.3-5 5 2.3 5 5 5zm0 2c-3.3 0-10 1.7-10 5v2h20v-2c0-3.3-6.7-5-10-5z" fill="#fff"/></svg></div>'+
+  '<h2 class="head-title">Agent Login</h2><p class="head-sub">Enter your details to begin the assessment</p></div>'+
+  '<div class="form-stack">'+
+  '<div class="field"><label class="lbl">Employee Name *</label><input class="inp" id="in-name" placeholder="Enter full name" value="'+esc(state.user.name)+'"></div>'+
+  '<div class="field"><label class="lbl">Employee ID *</label><input class="inp" id="in-empId" placeholder="e.g. EMP10234" value="'+esc(state.user.empId)+'"></div>'+
+  '<div class="field"><label class="lbl">Country *</label><input class="inp" id="in-country" placeholder="e.g. India" value="'+esc(state.user.country)+'"></div>'+
+  '<div class="field"><label class="lbl">Trainer Name *</label><input class="inp" id="in-trainer" placeholder="Enter trainer\'s name" value="'+esc(state.user.trainer)+'"></div>'+
+  '<p class="err" id="login-err"></p>'+
+  '<button class="btn-primary" style="margin-top:4px" onclick="handleLogin()">Proceed to Assessment</button>'+
+  '</div></div></div>'+
+  (state.showAdmin ? adminModal() : '');
+}
+function adminModal(){
+  return '<div class="overlay" onclick="state.showAdmin=false;state.adminPw=\'\';state.adminErr=\'\';render()">'+
+  '<div class="card" style="max-width:360px" onclick="event.stopPropagation()">'+
+  '<h3 style="margin-bottom:16px;font-size:18px;font-weight:700">Admin Access</h3>'+
+  '<label class="lbl">Password</label>'+
+  '<input type="password" class="inp" id="admin-pw" style="margin-bottom:8px" placeholder="Enter admin password" value="'+esc(state.adminPw)+'">'+
+  (state.adminErr ? '<p class="err">'+esc(state.adminErr)+'</p>' : '')+
+  '<button class="btn-primary" style="margin-top:8px" onclick="handleAdmin()">Login</button>'+
+  '</div></div>';
+}
+function renderAdmin(){
+  const list = store.get();
+  let rows;
+  if(list.length===0){ rows = '<div class="card empty" style="max-width:100%">No participants yet</div>'; }
+  else {
+    rows = '<div class="scroll-x"><table><thead><tr>'+
+      ["#","Name","Emp ID","Country","Trainer","Score","%","Date"].map(h=>'<th>'+h+'</th>').join('')+
+      '</tr></thead><tbody>'+
+      list.map((p,i)=>{
+        const bg = p.pct>=70?"#dcfce7":p.pct>=50?"#fef9c3":"#fee2e2";
+        const col = p.pct>=70?"#166534":p.pct>=50?"#854d0e":"#991b1b";
+        return '<tr><td style="color:#64748b">'+(i+1)+'</td><td style="font-weight:600">'+esc(p.name)+'</td>'+
+          '<td>'+esc(p.empId)+'</td><td>'+esc(p.country)+'</td><td>'+esc(p.trainer)+'</td>'+
+          '<td style="font-weight:700">'+p.score+'/'+p.total+'</td>'+
+          '<td><span class="score-pill" style="background:'+bg+';color:'+col+'">'+p.pct+'%</span></td>'+
+          '<td style="color:#94a3b8;white-space:nowrap">'+esc(p.date)+'</td></tr>';
+      }).join('')+'</tbody></table></div>';
+  }
+  return header("Admin Panel", '<button class="btn-outline" onclick="go(\'login\')">← Back to Login</button>')+
+  '<div class="admin-wrap"><div class="admin-top"><h2 style="font-size:22px">Participant Records</h2>'+
+  '<div style="display:flex;gap:8px"><span class="pill">Total: '+list.length+'</span>'+
+  (list.length>0?'<button class="btn-outline btn-danger" onclick="clearAdmin()">Clear All</button>':'')+
+  '</div></div>'+rows+'</div>';
+}
+function renderInstructions(){
+  const rules = ["Each correct answer scores 1 point (max 10).","Once submitted, answers cannot be changed.","Each question has a timer — manage your time.","Owner tickets always require verification via Owner Tool (OT) first.","Review disputes from owners must be escalated to T2.","Read the full email and tags before answering.","A certificate will be generated at the end with your score."];
+  return header("Tripadvisor", '<span style="font-size:13px;color:#64748b">Welcome, '+esc(state.user.name)+'</span>')+
+  '<div class="center"><div class="card wide"><div class="tcenter" style="margin-bottom:24px">'+
+  '<div class="head-icon"><svg width="28" height="28" fill="none" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z" fill="#fff"/></svg></div>'+
+  '<h2 class="head-title" style="font-size:24px">Assessment Instructions</h2><p class="head-sub">Read carefully before starting</p></div>'+
+  '<div class="info-box"><h3>How It Works</h3><div class="txt">You\'ll work through <strong>10 Zendesk-style support tickets</strong> that simulate real Fraud Support scenarios. Each ticket shows the requester panel, email thread, tags, and requester info — just like the real Zendesk tool.<br><br>For each ticket, choose the <strong>correct action</strong>. After you submit, you\'ll see if it was right or wrong with an explanation before moving on.</div></div>'+
+  '<div class="rules-box"><h3>Rules</h3>'+
+  rules.map((r,i)=>'<div class="rule"><span class="rule-num">'+(i+1)+'</span><span>'+r+'</span></div>').join('')+
+  '</div><div class="row-gap"><button class="btn-outline" style="flex:1" onclick="go(\'login\')">← Back</button>'+
+  '<button class="btn-primary" style="flex:2" onclick="startQuiz()">Start Assessment →</button></div>'+
+  '</div></div>';
+}
+function renderQuiz(){
+  const q = QUESTIONS[state.qi];
+  const progress = ((state.qi + (state.answered?1:0))/QUESTIONS.length)*100;
+  const firstName = q.requesterName.split(" ")[0].toLowerCase();
+
+  const tags = q.tags.map(t=>'<span class="tag">'+esc(t)+' <span class="x">×</span></span>').join('');
+  const typeBadge = q.ticketType==="owner"
+    ? '<span class="type-badge type-owner">OWNER TICKET</span>'
+    : '<span class="type-badge type-user">USER TICKET</span>';
+  const internalNote = q.internalNote
+    ? '<div class="internal-note"><strong>🔒 Internal Note:</strong> '+esc(q.internalNote)+'</div>' : '';
+
+  const options = q.options.map((opt,i)=>{
+    let cls = "option", chip = "chip";
+    if(state.answered){
+      cls += " locked";
+      if(i===q.correctIndex){ cls+=" correct"; chip+=" cor"; }
+      else if(i===state.selected){ cls+=" wrong"; chip+=" wr"; }
+    } else if(i===state.selected){ cls+=" selected"; chip+=" sel"; }
+    return '<div class="'+cls+'" onclick="selectOption('+i+')"><span class="'+chip+'">'+String.fromCharCode(65+i)+'</span><span class="opt-text">'+esc(opt)+'</span></div>';
+  }).join('');
+
+  const explain = state.answered
+    ? '<div class="explain '+(state.selected===q.correctIndex?'good':'bad')+'"><strong style="color:'+(state.selected===q.correctIndex?'#166534':'#991b1b')+'">'+(state.selected===q.correctIndex?'✓ Correct!':'✗ Incorrect')+'</strong><span style="color:#475569"> — '+esc(q.explanation)+'</span></div>'
+    : '';
+
+  const actionBtn = state.answered
+    ? '<button class="btn-primary auto" onclick="nextQuestion()">'+(state.qi<QUESTIONS.length-1?'Next Question →':'View Results →')+'</button>'
+    : '<button class="btn-primary auto" '+(state.selected===null?'disabled':'')+' onclick="submitAnswer()">Submit Answer</button>';
+
+  return header("Zendesk Simulation",
+    '<div style="display:flex;align-items:center;gap:16px"><span style="font-size:13px;color:#64748b">Q'+(state.qi+1)+'/'+QUESTIONS.length+' · Score: <strong style="color:#0f4c75">'+state.score+'</strong></span>'+
+    '<span class="timer" id="timer">⏱ '+pad(Math.floor(state.timer/60))+':'+pad(state.timer%60)+'</span></div>')+
+  '<div class="progress"><div style="width:'+progress+'%"></div></div>'+
+  '<div class="quiz-wrap">'+
+    '<div class="ticket">'+
+      '<div class="tk-tabbar"><span style="font-weight:700;color:#fff">Support</span>'+
+        '<span class="tk-tab"><svg width="14" height="14" fill="#9ca3af" viewBox="0 0 24 24"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>'+
+        'Request from: '+esc(firstName)+'... <span style="color:#9ca3af">'+esc(q.ticketId)+'</span></span></div>'+
+      '<div class="tk-orgrow"><span class="meta-txt">Organization (create) · <strong>'+esc(q.requester)+'</strong></span>'+
+        '<span class="badge-open">Open</span><span style="font-size:13px;color:#334155">Question #'+q.id+'</span></div>'+
+      '<div class="tk-body">'+
+        '<div class="tk-left">'+
+          '<div class="side-group"><label class="side-lbl">Requester</label><div class="side-box"><span class="val">👤 '+esc(q.requester)+'</span><span style="color:#9ca3af">▾</span></div></div>'+
+          '<div class="side-group"><label class="side-lbl">Assignee* <span class="take-it">take it</span></label><div class="side-box"><span class="val">👤 '+esc(q.assignee)+'</span><span style="color:#9ca3af">▾</span></div></div>'+
+          '<div class="side-group"><label class="side-lbl">Form</label><div class="side-box"><span>'+esc(q.form)+'</span><span style="color:#9ca3af">▾</span></div></div>'+
+          '<div class="side-group"><label class="side-lbl">Tags</label><div style="display:flex;flex-wrap:wrap;gap:6px">'+tags+'</div>'+
+            '<div style="margin-top:10px">'+typeBadge+'</div></div>'+
+        '</div>'+
+        '<div class="tk-center">'+
+          '<div class="req-title">Request from: '+esc(q.requester)+'</div>'+
+          '<div class="refid">'+esc(q.refId)+'</div>'+
+          '<div class="meta-row"><span class="meta-27">-27m</span><span class="meta-txt">Via email</span><span class="meta-txt">Topic: <span style="color:#3282b8">'+esc(q.topic)+'</span></span></div>'+
+          '<div class="see-oldest"><span>↑ See oldest</span></div>'+
+          '<div class="msg"><div class="msg-head"><span class="avatar">'+esc(q.requesterName[0])+'</span><span style="font-weight:600;font-size:13px">'+esc(q.requesterName)+'</span></div>'+esc(q.emailBody)+'</div>'+
+          '<div class="agent-sig">'+esc(q.agentSig)+'</div>'+
+          internalNote+
+        '</div>'+
+        '<div class="tk-right">'+
+          '<div style="display:flex;align-items:center;gap:8px;margin-bottom:16px"><span style="width:30px;height:30px;border-radius:50%;background:#e2e8f0;display:flex;align-items:center;justify-content:center;font-size:13px">👤</span><strong style="font-size:13px" class="val">'+esc(q.requesterName)+'</strong></div>'+
+          '<div class="r-item"><div class="r-lbl">Email</div><div class="r-val">'+esc(q.requester)+'</div></div>'+
+          '<div class="r-item"><div class="r-lbl">Local time</div><div class="r-val">'+esc(q.localTime)+'</div></div>'+
+          '<div class="r-item"><div class="r-lbl">Language</div><div class="r-val">'+esc(q.language)+'</div></div>'+
+          '<div><div class="r-lbl">Notes</div><div class="notes-box">Add user notes</div></div>'+
+        '</div>'+
+      '</div>'+
+      '<div class="tk-bottom"><span style="font-size:12px;color:#64748b">📋 Apply macro ▾</span><span class="submit-btn">Submit as Open ▾</span></div>'+
+    '</div>'+
+    '<div class="qcard"><h3 class="qtitle"><span class="qnum">Question '+(state.qi+1)+' — </span>'+esc(q.question)+'</h3>'+
+      '<div class="options">'+options+'</div>'+explain+
+      '<div class="q-actions">'+actionBtn+'</div>'+
+    '</div>'+
+  '</div>';
+}
+function renderResult(){
+  const pct = Math.round((state.score/QUESTIONS.length)*100);
+  const grade = pct>=90?"Outstanding":pct>=70?"Good":pct>=50?"Satisfactory":"Needs Improvement";
+  const gCol = pct>=70?"#166534":pct>=50?"#854d0e":"#991b1b";
+  const gBg = pct>=70?"#dcfce7":pct>=50?"#fef9c3":"#fee2e2";
+  const u = state.user;
+  const breakdown = state.answers.map((a,i)=>
+    '<div class="b-item" style="background:'+(a.correct?'#f0fdf4':'#fef2f2')+'"><span style="font-weight:600">Q'+(i+1)+': '+esc(QUESTIONS[i].topic)+'</span><span style="font-weight:700;color:'+(a.correct?'#22c55e':'#ef4444')+'">'+(a.correct?'✓':'✗')+'</span></div>'
+  ).join('');
+  return header("Assessment Complete", '')+
+  '<div style="padding:32px 16px;max-width:640px;margin:0 auto"><div class="card tcenter" style="max-width:100%;padding:40px">'+
+    '<div class="result-circle" style="background:'+gBg+';color:'+gCol+'">'+state.score+'</div>'+
+    '<p style="font-size:14px;color:#64748b;margin-bottom:4px">out of '+QUESTIONS.length+'</p>'+
+    '<span class="grade-pill" style="background:'+gBg+';color:'+gCol+'">'+grade+' — '+pct+'%</span>'+
+    '<div class="detail-box"><div class="detail-grid">'+
+      '<div><span style="color:#94a3b8">Name:</span> <strong>'+esc(u.name)+'</strong></div>'+
+      '<div><span style="color:#94a3b8">Emp ID:</span> <strong>'+esc(u.empId)+'</strong></div>'+
+      '<div><span style="color:#94a3b8">Country:</span> <strong>'+esc(u.country)+'</strong></div>'+
+      '<div><span style="color:#94a3b8">Trainer:</span> <strong>'+esc(u.trainer)+'</strong></div>'+
+    '</div></div>'+
+    '<div class="breakdown"><h4>Answer Breakdown</h4>'+breakdown+'</div>'+
+    '<div style="display:flex;gap:12px;flex-wrap:wrap">'+
+      '<button class="btn-primary" style="flex:1;min-width:180px" onclick="downloadCert()">Download Certificate</button>'+
+      '<button class="btn-outline" style="flex:1;min-width:140px" onclick="newSession()">New Session</button>'+
+    '</div>'+
+  '</div></div>';
+}
+
+/* ---- main render ---- */
+function render(){
+  const app = document.getElementById("app");
+  let html = "";
+  if(state.screen==="login") html = renderLogin();
+  else if(state.screen==="admin") html = renderAdmin();
+  else if(state.screen==="instructions") html = renderInstructions();
+  else if(state.screen==="quiz") html = renderQuiz();
+  else if(state.screen==="result") html = renderResult();
+  app.innerHTML = html;
+
+  /* bind inputs after render */
+  if(state.screen==="login"){
+    bindInput("in-name","name"); bindInput("in-empId","empId");
+    bindInput("in-country","country"); bindInput("in-trainer","trainer");
+    const t = document.getElementById("in-trainer");
+    if(t) t.addEventListener("keydown", e=>{ if(e.key==="Enter") handleLogin(); });
+    const pw = document.getElementById("admin-pw");
+    if(pw){ pw.addEventListener("input", e=>{ state.adminPw=e.target.value; }); pw.addEventListener("keydown", e=>{ if(e.key==="Enter") handleAdmin(); }); pw.focus(); }
+  }
+}
+
+render();
+</script>
+</body>
+</html>
