@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -148,6 +149,33 @@
   .breakdown h4 { font-size: 14px; font-weight: 700; color: #475569; margin-bottom: 10px; }
   .b-item { display: flex; align-items: center; justify-content: space-between; padding: 8px 12px; border-radius: 8px; font-size: 13px; margin-bottom: 6px; }
 
+
+  /* functional zendesk controls */
+  select.zd-select { width: 100%; padding: 8px 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 12.5px; color: #111827; background: #fff; outline: none; cursor: pointer; appearance: none; -webkit-appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath fill='%239ca3af' d='M0 0l5 6 5-6z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 10px center; padding-right: 26px; }
+  select.zd-select:focus { border-color: var(--blue); }
+  .take-it { color: var(--blue); float: right; font-weight: 600; cursor: pointer; text-decoration: underline; }
+  .take-it:hover { color: var(--navy); }
+  .tag .x { color: #93a3b8; cursor: pointer; font-weight: 700; }
+  .tag .x:hover { color: #dc2626; }
+  .notes-area { width: 100%; border: 1px solid #d1d5db; border-radius: 6px; padding: 8px 10px; font-size: 11px; color: #111827; min-height: 44px; resize: vertical; outline: none; font-family: inherit; }
+  .notes-area:focus { border-color: var(--blue); }
+  .macro-wrap { position: relative; }
+  .macro-btn { background: #fff; border: 1px solid #d1d5db; color: #334155; padding: 6px 14px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px; }
+  .macro-btn:hover { background: #f1f5f9; }
+  .macro-menu { position: absolute; bottom: 110%; left: 0; background: #fff; border: 1px solid #e2e8f0; border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,.14); min-width: 220px; z-index: 30; overflow: hidden; }
+  .macro-item { padding: 10px 14px; font-size: 13px; color: #334155; cursor: pointer; border-bottom: 1px solid #f1f5f9; }
+  .macro-item:last-child { border-bottom: none; }
+  .macro-item:hover { background: #f0f9ff; color: var(--navy); }
+  .submit-btn { background: var(--navy); color: #fff; padding: 6px 16px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; border: none; display: flex; align-items: center; gap: 6px; }
+  .submit-btn:hover { opacity: .92; }
+  .submit-wrap { position: relative; }
+  .submit-menu { position: absolute; bottom: 110%; right: 0; background: #fff; border: 1px solid #e2e8f0; border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,.14); min-width: 180px; z-index: 30; overflow: hidden; }
+  .submit-item { padding: 10px 14px; font-size: 13px; color: #334155; cursor: pointer; border-bottom: 1px solid #f1f5f9; }
+  .submit-item:last-child { border-bottom: none; }
+  .submit-item:hover { background: #f0f9ff; color: var(--navy); }
+  .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: #1f2733; color: #fff; padding: 10px 20px; border-radius: 8px; font-size: 13px; z-index: 200; box-shadow: 0 8px 24px rgba(0,0,0,.25); animation: toastIn .25s ease; }
+  @keyframes toastIn { from { opacity: 0; transform: translateX(-50%) translateY(10px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
+
   @media (max-width: 720px) {
     .tk-left, .tk-right { width: 100%; border: none; border-bottom: 1px solid #eef2f7; }
     .detail-grid { grid-template-columns: 1fr; }
@@ -266,7 +294,32 @@ let state = {
   qi: 0, score: 0, selected: null, answered: false, answers: [], timer: 0,
   timerId: null
 };
+
 const pad = n => String(n).padStart(2,"0");
+
+/* option pools for functional dropdowns */
+const REQUESTER_POOL = ["(current requester)","support@tripadvisor.com","noreply@tripadvisor.com","escalations@tripadvisor.com","Add new requester..."];
+const ASSIGNEE_POOL = ["Fraud Sup.../Mengani...","Fraud Support/Sravan","Fraud Support/Moseen","Fraud Support/Priya","T2 Escalation Queue","-- Unassigned --"];
+const FORM_POOL = ["Ticket","Owner Ticket","User Ticket","Escalation Form","Fraud Investigation Form"];
+const MACROS = ["Fraud Support :: Acknowledge receipt","Fraud Support :: Request more info","Fraud Support :: Escalate to T2","Fraud Support :: Owner verification pending","Fraud Support :: Close - resolved"];
+const SUBMIT_STATES = ["Submit as Open","Submit as Pending","Submit as Solved","Submit as On-hold"];
+
+/* per-ticket working state (resets each question) */
+let tk = null;
+function initTicketState(q){
+  tk = {
+    requester: q.requester,
+    assignee: q.assignee,
+    form: q.form,
+    tags: [...q.tags],
+    notes: "",
+    macroOpen: false,
+    submitOpen: false,
+    submitLabel: "Submit as Open",
+    toast: ""
+  };
+}
+
 const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 
 /* ---- timer ---- */
@@ -290,6 +343,7 @@ function handleAdmin(){
 }
 function startQuiz(){
   state.qi=0; state.score=0; state.selected=null; state.answered=false; state.answers=[]; state.timer=0;
+  initTicketState(QUESTIONS[0]);
   go("quiz"); startTimer();
 }
 function selectOption(i){ if(state.answered) return; state.selected=i; render(); }
@@ -306,6 +360,7 @@ function submitAnswer(){
 function nextQuestion(){
   if(state.qi < QUESTIONS.length-1){
     state.qi++; state.selected=null; state.answered=false; state.timer=0;
+    initTicketState(QUESTIONS[state.qi]);
     render(); startTimer();
   } else {
     const list = store.get();
@@ -348,6 +403,31 @@ function downloadCert(){
   const a = document.createElement("a");
   a.href = url; a.download = "FraudSupport_Certificate_"+u.name.replace(/\s/g,"_")+".svg";
   a.click(); URL.revokeObjectURL(url);
+}
+
+
+/* ---- ticket control actions ---- */
+function showToast(msg){
+  tk.toast = msg; render();
+  clearTimeout(window._toastT);
+  window._toastT = setTimeout(()=>{ if(tk){ tk.toast=""; render(); } }, 1800);
+}
+function setRequester(v){ tk.requester = v; }
+function setAssignee(v){ tk.assignee = v; showToast("Assignee set to: "+v); }
+function setForm(v){ tk.form = v; }
+function takeIt(){
+  const me = state.user.name ? state.user.name : "You";
+  tk.assignee = "Fraud Support/"+me;
+  showToast("Ticket assigned to you");
+}
+function removeTag(i){ tk.tags.splice(i,1); render(); }
+function setNotes(v){ tk.notes = v; }
+function toggleMacro(){ tk.macroOpen = !tk.macroOpen; tk.submitOpen = false; render(); }
+function applyMacro(m){ tk.macroOpen = false; showToast("Macro applied: "+m); }
+function toggleSubmit(){ tk.submitOpen = !tk.submitOpen; tk.macroOpen = false; render(); }
+function chooseSubmit(label){
+  tk.submitLabel = label; tk.submitOpen = false;
+  showToast("Ticket saved — "+label);
 }
 
 /* ---- input binding ---- */
@@ -426,10 +506,17 @@ function renderInstructions(){
 }
 function renderQuiz(){
   const q = QUESTIONS[state.qi];
+  if(!tk) initTicketState(q);
   const progress = ((state.qi + (state.answered?1:0))/QUESTIONS.length)*100;
   const firstName = q.requesterName.split(" ")[0].toLowerCase();
 
-  const tags = q.tags.map(t=>'<span class="tag">'+esc(t)+' <span class="x">×</span></span>').join('');
+  const tags = tk.tags.map((t,i)=>'<span class="tag">'+esc(t)+' <span class="x" onclick="removeTag('+i+')">×</span></span>').join('') || '<span style="font-size:11px;color:#9ca3af">No tags</span>';
+  const reqOpts = REQUESTER_POOL.map(o=>{ const val = o==="(current requester)"?q.requester:o; return '<option value="'+esc(val)+'"'+(val===tk.requester?' selected':'')+'>'+esc(o==="(current requester)"?q.requester:o)+'</option>'; }).join('');
+  const asgOpts = ASSIGNEE_POOL.map(o=>'<option value="'+esc(o)+'"'+(o===tk.assignee?' selected':'')+'>'+esc(o)+'</option>').join('') + (ASSIGNEE_POOL.indexOf(tk.assignee)===-1?'<option value="'+esc(tk.assignee)+'" selected>'+esc(tk.assignee)+'</option>':'');
+  const formOpts = FORM_POOL.map(o=>'<option value="'+esc(o)+'"'+(o===tk.form?' selected':'')+'>'+esc(o)+'</option>').join('');
+  const macroMenu = tk.macroOpen ? '<div class="macro-menu">'+MACROS.map(m=>'<div class="macro-item" onclick="applyMacro(\''+esc(m).replace(/'/g,"&#39;")+'\')">'+esc(m)+'</div>').join('')+'</div>' : '';
+  const submitMenu = tk.submitOpen ? '<div class="submit-menu">'+SUBMIT_STATES.map(st=>'<div class="submit-item" onclick="chooseSubmit(\''+esc(st)+'\')">'+esc(st)+'</div>').join('')+'</div>' : '';
+  const toast = tk.toast ? '<div class="toast">'+esc(tk.toast)+'</div>' : '';
   const typeBadge = q.ticketType==="owner"
     ? '<span class="type-badge type-owner">OWNER TICKET</span>'
     : '<span class="type-badge type-user">USER TICKET</span>';
@@ -467,9 +554,9 @@ function renderQuiz(){
         '<span class="badge-open">Open</span><span style="font-size:13px;color:#334155">Question #'+q.id+'</span></div>'+
       '<div class="tk-body">'+
         '<div class="tk-left">'+
-          '<div class="side-group"><label class="side-lbl">Requester</label><div class="side-box"><span class="val">👤 '+esc(q.requester)+'</span><span style="color:#9ca3af">▾</span></div></div>'+
-          '<div class="side-group"><label class="side-lbl">Assignee* <span class="take-it">take it</span></label><div class="side-box"><span class="val">👤 '+esc(q.assignee)+'</span><span style="color:#9ca3af">▾</span></div></div>'+
-          '<div class="side-group"><label class="side-lbl">Form</label><div class="side-box"><span>'+esc(q.form)+'</span><span style="color:#9ca3af">▾</span></div></div>'+
+          '<div class="side-group"><label class="side-lbl">Requester</label><select class="zd-select" onchange="setRequester(this.value)">'+reqOpts+'</select></div>'+
+          '<div class="side-group"><label class="side-lbl">Assignee* <span class="take-it" onclick="takeIt()">take it</span></label><select class="zd-select" onchange="setAssignee(this.value)">'+asgOpts+'</select></div>'+
+          '<div class="side-group"><label class="side-lbl">Form</label><select class="zd-select" onchange="setForm(this.value)">'+formOpts+'</select></div>'+
           '<div class="side-group"><label class="side-lbl">Tags</label><div style="display:flex;flex-wrap:wrap;gap:6px">'+tags+'</div>'+
             '<div style="margin-top:10px">'+typeBadge+'</div></div>'+
         '</div>'+
@@ -487,16 +574,16 @@ function renderQuiz(){
           '<div class="r-item"><div class="r-lbl">Email</div><div class="r-val">'+esc(q.requester)+'</div></div>'+
           '<div class="r-item"><div class="r-lbl">Local time</div><div class="r-val">'+esc(q.localTime)+'</div></div>'+
           '<div class="r-item"><div class="r-lbl">Language</div><div class="r-val">'+esc(q.language)+'</div></div>'+
-          '<div><div class="r-lbl">Notes</div><div class="notes-box">Add user notes</div></div>'+
+          '<div><div class="r-lbl">Notes</div><textarea class="notes-area" placeholder="Add user notes" oninput="setNotes(this.value)">'+esc(tk.notes)+'</textarea></div>'+
         '</div>'+
       '</div>'+
-      '<div class="tk-bottom"><span style="font-size:12px;color:#64748b">📋 Apply macro ▾</span><span class="submit-btn">Submit as Open ▾</span></div>'+
+      '<div class="tk-bottom"><div class="macro-wrap"><button class="macro-btn" onclick="toggleMacro()">📋 Apply macro ▾</button>'+macroMenu+'</div>'+'<div class="submit-wrap"><button class="submit-btn" onclick="toggleSubmit()">'+esc(tk.submitLabel)+' ▾</button>'+submitMenu+'</div></div>'+
     '</div>'+
     '<div class="qcard"><h3 class="qtitle"><span class="qnum">Question '+(state.qi+1)+' — </span>'+esc(q.question)+'</h3>'+
       '<div class="options">'+options+'</div>'+explain+
       '<div class="q-actions">'+actionBtn+'</div>'+
     '</div>'+
-  '</div>';
+  '</div>'+toast;
 }
 function renderResult(){
   const pct = Math.round((state.score/QUESTIONS.length)*100);
