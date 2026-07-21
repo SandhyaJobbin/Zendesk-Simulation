@@ -1,7 +1,1916 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fraud Support Training - Zendesk Simulator</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --navy: #0f4c75; --blue: #3282b8; --sky: #bbe1fa; --ink: #1a1a2e;
+    --muted: #64748b; --line: #e2e8f0; --bg: #f5f7fa; --card: #fff;
+    --success: #22c55e; --danger: #ef4444; --warn: #f59e0b;
+  }
+  html, body { height: 100%; }
+  body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: var(--bg); color: var(--ink); min-height: 100vh; line-height: 1.5;
+  }
+  button { font-family: inherit; }
+ 
+  /* --- HEADER --- */
+  .app-header {
+    background: #fff; border-bottom: 1px solid var(--line); padding: 12px 24px;
+    display: flex; align-items: center; gap: 20px; position: sticky; top: 0; z-index: 50;
+    flex-wrap: wrap;
+  }
+  .brand { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+  .brand-ic {
+    width: 36px; height: 36px; border-radius: 8px;
+    background: linear-gradient(135deg, var(--navy), var(--blue));
+    display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700;
+  }
+  .brand-txt { font-size: 15px; font-weight: 700; color: var(--ink); }
+  .brand-sub { font-size: 11px; color: var(--muted); font-weight: 400; display: block; }
+  .header-right { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-left: auto; }
+  .header-item { font-size: 12.5px; color: var(--muted); display: flex; align-items: center; gap: 6px; }
+  .header-item strong { color: var(--navy); font-weight: 700; font-size: 13px; }
+  .header-progress { flex: 1; min-width: 140px; max-width: 300px; height: 6px; background: #e2e8f0; border-radius: 3px; overflow: hidden; }
+  .header-progress > div { height: 100%; background: linear-gradient(90deg, var(--navy), var(--blue)); transition: width .4s; }
+  .timer-chip {
+    background: #f1f5f9; padding: 5px 12px; border-radius: 8px; font-size: 13px; font-weight: 600;
+    font-variant-numeric: tabular-nums; color: #334155;
+  }
+  .timer-chip.warn { background: #fef3c7; color: #92400e; }
+  .timer-chip.danger { background: #fee2e2; color: #991b1b; }
+ 
+  /* --- BUTTONS --- */
+  .btn { border: none; border-radius: 8px; padding: 11px 24px; font-size: 14px; font-weight: 600;
+         cursor: pointer; transition: all .18s; display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+  .btn-primary { background: linear-gradient(135deg, var(--navy), var(--blue)); color: #fff; }
+  .btn-primary:hover { opacity: .92; transform: translateY(-1px); }
+  .btn-primary:disabled { opacity: .45; cursor: not-allowed; transform: none; }
+  .btn-outline { background: transparent; color: var(--blue); border: 1.5px solid var(--blue); }
+  .btn-outline:hover { background: #f0f9ff; }
+  .btn-ghost { background: transparent; color: var(--muted); }
+  .btn-ghost:hover { background: #f1f5f9; color: var(--ink); }
+  .btn-danger { background: #fee2e2; color: #991b1b; }
+  .btn-danger:hover { background: #fecaca; }
+  .btn-block { width: 100%; }
+  .btn-sm { padding: 6px 14px; font-size: 12.5px; }
+ 
+  /* --- CARDS --- */
+  .center-wrap { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px 16px; }
+  .card { background: var(--card); border-radius: 14px; box-shadow: 0 4px 20px rgba(15,76,117,.08); padding: 36px; width: 100%; max-width: 460px; }
+  .card-wide { max-width: 720px; }
+ 
+  /* --- LOGIN --- */
+  .login-title { font-size: 22px; font-weight: 800; color: var(--navy); text-align: center; line-height: 1.3; }
+  .login-badge { display: inline-block; background: linear-gradient(135deg, #0f4c75, #3282b8); color: #fff; padding: 5px 14px; border-radius: 20px; font-size: 12px; font-weight: 600; margin: 12px auto; letter-spacing: .3px; }
+  .login-desc { font-size: 13.5px; color: var(--muted); text-align: center; line-height: 1.6; margin-bottom: 26px; }
+  .login-icon-wrap { text-align: center; margin-bottom: 18px; }
+  .login-icon { width: 60px; height: 60px; border-radius: 16px;
+    background: linear-gradient(135deg, var(--navy), var(--blue)); display: inline-flex; align-items: center; justify-content: center; }
+  .field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+  .lbl { font-size: 13px; font-weight: 600; color: #374151; }
+  .lbl .req { color: var(--danger); }
+  .inp, .sel { width: 100%; padding: 10px 14px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 14px; outline: none; transition: border .15s, box-shadow .15s; font-family: inherit; background: #fff; color: var(--ink); }
+  .inp:focus, .sel:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(50,130,184,.12); }
+  .sel { appearance: none; -webkit-appearance: none; padding-right: 32px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath fill='%236b7280' d='M0 0l5 6 5-6z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 12px center; cursor: pointer; }
+  .err { color: var(--danger); font-size: 12.5px; margin-top: 4px; min-height: 16px; }
+  .divider { text-align: center; margin: 20px 0 14px; color: #94a3b8; font-size: 12px; position: relative; }
+  .divider::before, .divider::after { content: ""; position: absolute; top: 50%; width: 40%; height: 1px; background: #e2e8f0; }
+  .divider::before { left: 0; } .divider::after { right: 0; }
+ 
+  /* --- MODAL --- */
+  .overlay { position: fixed; inset: 0; background: rgba(15,23,42,.5); z-index: 200; display: flex; align-items: center; justify-content: center; padding: 16px; backdrop-filter: blur(4px); }
+  .modal { background: #fff; border-radius: 14px; padding: 32px; max-width: 400px; width: 100%; box-shadow: 0 20px 60px rgba(0,0,0,.2); }
+  .modal h3 { font-size: 19px; font-weight: 700; margin-bottom: 6px; color: var(--navy); }
+  .modal .sub { font-size: 13px; color: var(--muted); margin-bottom: 20px; }
+ 
+  /* --- INSTRUCTIONS --- */
+  .inst-title { font-size: 26px; font-weight: 800; color: var(--navy); text-align: center; line-height: 1.2; }
+  .inst-sub { font-size: 13.5px; color: var(--muted); text-align: center; margin-top: 6px; margin-bottom: 26px; }
+  .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 14px; margin-bottom: 24px; }
+  .stat {
+    background: linear-gradient(135deg, #f0f9ff, #e0f2fe);
+    border: 1px solid #bae6fd; border-radius: 12px; padding: 18px 16px; text-align: center;
+    transition: transform .18s;
+  }
+  .stat:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(15,76,117,.08); }
+  .stat-ic { width: 40px; height: 40px; border-radius: 10px; background: #fff; display: flex; align-items: center; justify-content: center; margin: 0 auto 10px; color: var(--navy); }
+  .stat-val { font-size: 22px; font-weight: 800; color: var(--navy); display: block; }
+  .stat-lbl { font-size: 11.5px; color: #475569; font-weight: 600; text-transform: uppercase; letter-spacing: .4px; margin-top: 3px; display: block; }
+  .rules { background: #fafbfc; border-radius: 12px; padding: 20px; margin-bottom: 24px; border: 1px solid #f1f5f9; }
+  .rules h4 { font-size: 14px; font-weight: 700; color: var(--navy); margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+  .rule { display: flex; gap: 10px; align-items: flex-start; font-size: 13.5px; color: #334155; margin-bottom: 8px; }
+  .rule-dot { min-width: 8px; height: 8px; border-radius: 50%; background: var(--blue); margin-top: 7px; flex-shrink: 0; }
+ 
+  /* --- QUIZ / TICKET --- */
+  .quiz-wrap { padding: 16px; max-width: 1320px; margin: 0 auto; }
+  .ticket-note {
+    background: #eff6ff; border-left: 3px solid var(--blue); border-radius: 8px;
+    padding: 10px 16px; margin-bottom: 14px; font-size: 13px; color: #1e3a5f;
+    display: flex; align-items: center; gap: 10px;
+  }
+ 
+  .ticket {
+    background: #fff; border-radius: 12px; border: 1px solid var(--line);
+    box-shadow: 0 2px 8px rgba(15,76,117,.06); overflow: hidden;
+  }
+  /* top dark strip */
+  .tk-topbar { background: #1f2733; padding: 8px 16px; display: flex; align-items: center; gap: 12px; color: #e5e7eb; font-size: 13px; flex-wrap: wrap; }
+  .tk-topbar-tab { background: #2d3748; padding: 4px 12px; border-radius: 6px; display: inline-flex; align-items: center; gap: 8px; font-size: 12.5px; }
+  .tk-orgbar { background: #f8fafc; border-bottom: 1px solid var(--line); padding: 9px 16px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; font-size: 12.5px; color: var(--muted); }
+  .badge-open { background: var(--danger); color: #fff; padding: 2px 8px; border-radius: 4px; font-size: 10.5px; font-weight: 700; letter-spacing: .3px; }
+ 
+  /* body 3 columns */
+  .tk-body { display: grid; grid-template-columns: 260px 1fr 240px; align-items: stretch; }
+  .tk-left { border-right: 1px solid #eef2f7; padding: 16px; background: #fcfcfd; overflow-y: auto; max-height: 720px; }
+  .tk-center { padding: 16px 20px; background: #fff; display: flex; flex-direction: column; min-height: 620px; }
+  .tk-right { border-left: 1px solid #eef2f7; padding: 16px; background: #fcfcfd; overflow-y: auto; max-height: 720px; }
+ 
+  .side-group { margin-bottom: 15px; }
+  .side-lbl { font-size: 10.5px; font-weight: 700; color: #6b7280; letter-spacing: .5px; text-transform: uppercase; display: block; margin-bottom: 5px; }
+  .take-it { color: var(--blue); font-weight: 600; cursor: pointer; text-decoration: underline; text-transform: none; letter-spacing: 0; }
+  .take-it:hover { color: var(--navy); }
+  .req-display {
+    border: 1px solid #d1d5db; border-radius: 6px; padding: 8px 10px; font-size: 12.5px;
+    background: #fff; word-break: break-all; color: #111827;
+  }
+  .zd-sel {
+    width: 100%; padding: 7px 26px 7px 10px; border: 1px solid #d1d5db; border-radius: 6px;
+    font-size: 12.5px; background: #fff; outline: none; cursor: pointer; appearance: none; -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath fill='%239ca3af' d='M0 0l5 6 5-6z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 10px center;
+    font-family: inherit; color: #111827;
+  }
+  .zd-sel:focus { border-color: var(--blue); }
+  .zd-input {
+    width: 100%; padding: 7px 10px; border: 1px solid #d1d5db; border-radius: 6px;
+    font-size: 12.5px; outline: none; font-family: inherit; background: #fff; color: #111827;
+  }
+  .zd-input:focus { border-color: var(--blue); }
+  .zd-input[readonly] { background: #f8fafc; color: #475569; cursor: default; }
+ 
+  .tag-box {
+    display: flex; flex-wrap: wrap; gap: 5px; border: 1px solid #d1d5db; border-radius: 6px;
+    padding: 7px; min-height: 40px; background: #fff;
+  }
+  .tag {
+    background: #e0f2fe; color: #075985; padding: 3px 8px; border-radius: 4px; font-size: 10.5px;
+    display: inline-flex; align-items: center; gap: 5px; font-weight: 500;
+  }
+  .tag .x { color: #64748b; cursor: pointer; font-weight: 700; font-size: 12px; line-height: 1; }
+  .tag .x:hover { color: var(--danger); }
+ 
+  .check-row { display: flex; align-items: center; gap: 7px; margin-top: 5px; font-size: 12.5px; color: #334155; cursor: pointer; }
+  .check-row input[type="checkbox"] { width: 15px; height: 15px; accent-color: var(--blue); cursor: pointer; flex-shrink: 0; }
+  .check-row label { cursor: pointer; user-select: none; }
+ 
+  .reason-box {
+    border: 1px solid #d1d5db; border-radius: 6px; padding: 8px 10px; background: #fff; margin-bottom: 8px;
+    font-size: 12.5px; font-weight: 500;
+  }
+ 
+  /* center email thread */
+  .req-title { font-weight: 700; font-size: 14px; color: #1e293b; margin-bottom: 2px; word-break: break-all; }
+  .refid { font-size: 11px; color: #94a3b8; margin-bottom: 6px; }
+  .meta-row { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; flex-wrap: wrap; font-size: 12px; color: var(--muted); }
+  .meta-row .topic { color: var(--blue); font-weight: 500; }
+ 
+  .thread {
+    flex: 1; overflow-y: auto; padding: 4px; margin-bottom: 12px; max-height: 380px;
+    min-height: 240px; display: flex; flex-direction: column; gap: 10px;
+    scroll-behavior: smooth;
+  }
+  .msg-in {
+    background: #f8fafc; border-radius: 8px; padding: 14px; border: 1px solid #eef2f7;
+    font-size: 13.5px; line-height: 1.6; color: #334155;
+  }
+  .msg-head { display: flex; align-items: center; gap: 9px; margin-bottom: 10px; }
+  .avatar { width: 30px; height: 30px; border-radius: 50%; background: var(--blue); color: #fff;
+    display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; flex-shrink: 0; }
+  .msg-from { font-weight: 600; font-size: 13px; color: #1e293b; }
+  .msg-time { font-size: 11px; color: #94a3b8; margin-left: auto; }
+  .msg-body { white-space: pre-wrap; word-break: break-word; }
+ 
+  .msg-internal {
+    background: #fffbeb; border: 1px solid #fde68a; border-left: 3px solid var(--warn);
+    border-radius: 8px; padding: 12px 14px; font-size: 13px;
+  }
+  .msg-internal .tag-int { background: var(--warn); color: #fff; padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .4px; }
+ 
+  .msg-public {
+    background: #eff6ff; border: 1px solid #bfdbfe; border-left: 3px solid var(--blue);
+    border-radius: 8px; padding: 12px 14px; font-size: 13px;
+  }
+  .msg-public .tag-pub { background: var(--blue); color: #fff; padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .4px; }
+ 
+  /* reply composer */
+  .composer { border: 1px solid var(--line); border-radius: 10px; background: #fafbfc; padding: 10px; }
+  .composer textarea {
+    width: 100%; border: none; background: transparent; resize: vertical; min-height: 80px;
+    max-height: 200px; padding: 6px; font-size: 13.5px; font-family: inherit; outline: none;
+    line-height: 1.55; color: var(--ink);
+  }
+  .composer-actions { display: flex; gap: 8px; align-items: center; margin-top: 6px; flex-wrap: wrap; }
+  .send-menu { position: relative; margin-left: auto; }
+  .send-menu-drop {
+    position: absolute; bottom: calc(100% + 6px); right: 0; background: #fff;
+    border: 1px solid var(--line); border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,.12);
+    min-width: 200px; overflow: hidden; z-index: 30;
+  }
+  .send-opt { padding: 11px 14px; font-size: 13px; cursor: pointer; display: flex; align-items: center; gap: 10px; color: #334155; border-bottom: 1px solid #f1f5f9; }
+  .send-opt:last-child { border-bottom: none; }
+  .send-opt:hover { background: #f0f9ff; color: var(--navy); }
+  .send-opt .ic-dot { width: 8px; height: 8px; border-radius: 50%; }
+ 
+  /* right panel */
+  .r-person { display: flex; align-items: center; gap: 9px; margin-bottom: 14px; padding-bottom: 12px; border-bottom: 1px solid #f1f5f9; }
+  .r-avatar { width: 34px; height: 34px; border-radius: 50%; background: #e2e8f0; display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0; }
+  .r-name { font-size: 13px; font-weight: 600; word-break: break-all; overflow: hidden; }
+  .r-item { margin-bottom: 12px; }
+  .r-lbl-sm { font-size: 10.5px; color: #94a3b8; margin-bottom: 3px; text-transform: uppercase; letter-spacing: .4px; font-weight: 700; }
+  .r-val { font-size: 12px; word-break: break-all; color: #334155; }
+  .notes-area { width: 100%; border: 1px solid #d1d5db; border-radius: 6px; padding: 8px 10px; font-size: 12px; min-height: 60px; resize: vertical; outline: none; font-family: inherit; color: var(--ink); }
+  .notes-area:focus { border-color: var(--blue); }
+ 
+  .interaction-card {
+    margin-top: 16px; padding-top: 14px; border-top: 1px solid #f1f5f9;
+  }
+  .interaction-title { font-size: 11px; color: #94a3b8; text-transform: uppercase; letter-spacing: .5px; font-weight: 700; margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between; }
+  .interaction-item {
+    background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 10px;
+    font-size: 12px; margin-bottom: 6px; display: flex; align-items: flex-start; gap: 8px;
+  }
+  .ii-dot { width: 8px; height: 8px; border-radius: 2px; background: var(--danger); margin-top: 4px; flex-shrink: 0; }
+  .ii-body { flex: 1; }
+  .ii-title { font-weight: 600; color: #334155; word-break: break-all; }
+  .ii-meta { font-size: 11px; color: #94a3b8; margin-top: 2px; }
+ 
+  /* bottom bar (macro) */
+  .tk-bottom { border-top: 1px solid var(--line); padding: 10px 16px; background: #f8fafc; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .macro-wrap { position: relative; }
+  .macro-btn { background: #fff; border: 1px solid #d1d5db; color: #334155; padding: 7px 14px; border-radius: 6px; font-size: 12.5px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+  .macro-btn:hover { background: #f1f5f9; border-color: var(--blue); color: var(--navy); }
+  .macro-menu {
+    position: absolute; bottom: calc(100% + 6px); left: 0; background: #fff;
+    border: 1px solid var(--line); border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,.14);
+    min-width: 280px; max-height: 320px; overflow-y: auto; z-index: 40;
+  }
+  .macro-item { padding: 10px 14px; font-size: 13px; cursor: pointer; color: #334155; border-bottom: 1px solid #f1f5f9; }
+  .macro-item:last-child { border-bottom: none; }
+  .macro-item:hover { background: #f0f9ff; color: var(--navy); }
+  .macro-item .m-title { font-weight: 600; margin-bottom: 2px; }
+  .macro-item .m-desc { font-size: 11px; color: #94a3b8; }
+ 
+  .next-btn-wrap { margin-left: auto; }
+ 
+  /* toast */
+  .toast {
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: #1f2733;
+    color: #fff; padding: 12px 22px; border-radius: 10px; font-size: 13.5px; z-index: 300;
+    box-shadow: 0 12px 30px rgba(0,0,0,.28); animation: tin .28s ease;
+  }
+  @keyframes tin { from { opacity: 0; transform: translateX(-50%) translateY(12px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
+ 
+  /* results */
+  .results-wrap { padding: 32px 16px; max-width: 900px; margin: 0 auto; }
+  .result-hero { text-align: center; margin-bottom: 28px; }
+  .result-badge {
+    display: inline-flex; flex-direction: column; align-items: center; padding: 22px 40px;
+    border-radius: 20px; margin-bottom: 12px;
+  }
+  .result-badge.pass { background: linear-gradient(135deg, #dcfce7, #bbf7d0); color: #14532d; }
+  .result-badge.fail { background: linear-gradient(135deg, #fee2e2, #fecaca); color: #7f1d1d; }
+  .result-score { font-size: 48px; font-weight: 800; line-height: 1; }
+  .result-total { font-size: 14px; opacity: .8; margin-top: 2px; }
+  .result-pct { font-size: 24px; font-weight: 700; margin-top: 6px; }
+  .result-msg { font-size: 16px; font-weight: 600; margin-top: 14px; }
+  .result-sub { font-size: 13px; color: var(--muted); margin-top: 6px; }
+  .required-pill {
+    display: inline-block; background: #fef3c7; color: #78350f;
+    padding: 5px 14px; border-radius: 20px; font-size: 12.5px; font-weight: 600; margin-top: 10px;
+  }
+ 
+  .response-list { display: flex; flex-direction: column; gap: 10px; margin: 24px 0; }
+  .resp-item {
+    background: #fff; border-radius: 10px; padding: 16px; border: 1px solid var(--line);
+    display: flex; gap: 14px; align-items: flex-start;
+  }
+  .resp-item.correct { border-left: 4px solid var(--success); }
+  .resp-item.wrong { border-left: 4px solid var(--danger); }
+  .resp-ic {
+    width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    font-weight: 700; color: #fff; font-size: 14px; flex-shrink: 0;
+  }
+  .resp-ic.correct { background: var(--success); }
+  .resp-ic.wrong { background: var(--danger); }
+  .resp-body { flex: 1; min-width: 0; }
+  .resp-topic { font-weight: 700; font-size: 14px; color: #1e293b; margin-bottom: 4px; }
+  .resp-meta { font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+  .resp-detail { font-size: 12.5px; color: #475569; line-height: 1.6; }
+  .resp-detail strong { color: #1e293b; }
+ 
+  /* certificate */
+  .certificate {
+    background: linear-gradient(135deg, #0f4c75 0%, #1b262c 100%);
+    border-radius: 16px; padding: 40px; color: #fff; margin: 24px 0;
+    position: relative; overflow: hidden;
+    box-shadow: 0 12px 40px rgba(15,76,117,.3);
+  }
+  .certificate::before {
+    content: ""; position: absolute; inset: 12px; border: 2px dashed rgba(187,225,250,.4); border-radius: 10px; pointer-events: none;
+  }
+  .cert-brand { text-align: center; font-size: 11px; letter-spacing: 6px; color: #bbe1fa; margin-bottom: 16px; font-family: Georgia, serif; }
+  .cert-title { text-align: center; font-family: Georgia, serif; font-size: 30px; font-weight: 700; margin-bottom: 6px; }
+  .cert-line { width: 200px; height: 1px; background: #3282b8; margin: 12px auto 20px; }
+  .cert-sub { text-align: center; font-size: 13px; color: #bbe1fa; margin-bottom: 10px; }
+  .cert-name { text-align: center; font-family: Georgia, serif; font-size: 32px; font-weight: 700; margin: 14px 0 6px; }
+  .cert-meta { text-align: center; font-size: 12px; color: #bbe1fa; margin-bottom: 20px; }
+  .cert-course { text-align: center; font-family: Georgia, serif; font-size: 18px; color: #3282b8; font-weight: 700; margin-bottom: 22px; }
+  .cert-score-block { text-align: center; margin: 20px 0; }
+  .cert-score-num { font-family: Georgia, serif; font-size: 44px; font-weight: 700; line-height: 1; }
+  .cert-score-lbl { font-size: 14px; color: #bbe1fa; margin-top: 4px; }
+  .cert-footer { display: flex; justify-content: space-between; margin-top: 26px; padding-top: 18px; border-top: 1px solid rgba(50,130,184,.4); font-size: 11.5px; color: #bbe1fa; flex-wrap: wrap; gap: 12px; }
+  .cert-footer > div { text-align: center; }
+  .cert-footer .val { color: #fff; font-weight: 600; font-size: 12.5px; }
+ 
+  /* admin */
+  .admin-wrap { padding: 24px; max-width: 1200px; margin: 0 auto; }
+  .admin-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px; }
+  .admin-title { font-size: 22px; font-weight: 700; color: var(--navy); }
+  .count-pill { background: #e0f2fe; color: #0369a1; padding: 6px 16px; border-radius: 20px; font-size: 13px; font-weight: 600; }
+  .empty-state { background: #fff; border-radius: 12px; padding: 60px 20px; text-align: center; color: #94a3b8; font-size: 15px; }
+  table { width: 100%; border-collapse: separate; border-spacing: 0; background: #fff; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,.06); }
+  th { padding: 12px 16px; text-align: left; font-size: 12px; font-weight: 700; color: #475569; border-bottom: 1px solid var(--line); background: #f8fafc; white-space: nowrap; text-transform: uppercase; letter-spacing: .3px; }
+  td { padding: 12px 16px; font-size: 13px; border-bottom: 1px solid #f1f5f9; color: #334155; }
+  tr:last-child td { border-bottom: none; }
+  .pct-pill { padding: 3px 10px; border-radius: 12px; font-size: 12px; font-weight: 700; display: inline-block; }
+  .table-scroll { overflow-x: auto; }
+ 
+ 
+  /* --- LOGIN: split-screen viewport-fit --- */
+  .login-split {
+    min-height: 100vh;
+    display: grid;
+    grid-template-columns: minmax(0, 42%) minmax(0, 58%);
+  }
+  .login-hero {
+    background: linear-gradient(135deg, #0f4c75 0%, #1b262c 100%);
+    color: #fff;
+    padding: 44px 44px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    position: relative;
+    overflow: hidden;
+  }
+  .login-hero::before {
+    content: ""; position: absolute; top: -25%; right: -25%;
+    width: 480px; height: 480px;
+    background: radial-gradient(circle, rgba(50,130,184,.42), transparent 70%);
+    border-radius: 50%; pointer-events: none;
+  }
+  .login-hero::after {
+    content: ""; position: absolute; bottom: -20%; left: -20%;
+    width: 380px; height: 380px;
+    background: radial-gradient(circle, rgba(187,225,250,.18), transparent 70%);
+    border-radius: 50%; pointer-events: none;
+  }
+  .login-hero > * { position: relative; z-index: 1; }
+  .hero-brand-row { display: flex; align-items: center; gap: 12px; }
+  .hero-logo {
+    width: 48px; height: 48px; border-radius: 12px;
+    background: linear-gradient(135deg, #3282b8, #bbe1fa);
+    color: #0f4c75;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 800; font-size: 17px;
+    box-shadow: 0 4px 14px rgba(0,0,0,.25);
+  }
+  .hero-brand-text { font-weight: 700; font-size: 14px; letter-spacing: .2px; }
+  .hero-brand-sub { font-size: 11px; color: #bbe1fa; opacity: .85; margin-top: 2px; }
+  .hero-content { margin: 28px 0; }
+  .hero-tag {
+    display: inline-block;
+    background: rgba(255,255,255,.1);
+    border: 1px solid rgba(187,225,250,.28);
+    padding: 5px 14px;
+    border-radius: 20px;
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: #bbe1fa;
+    margin-bottom: 20px;
+  }
+  .hero-title {
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 34px;
+    font-weight: 700;
+    line-height: 1.15;
+    margin-bottom: 12px;
+  }
+  .hero-title .accent {
+    background: linear-gradient(135deg, #bbe1fa, #3282b8);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .hero-desc {
+    font-size: 13.5px;
+    color: rgba(255,255,255,.85);
+    line-height: 1.65;
+    max-width: 92%;
+  }
+  .hero-features { margin-top: 24px; display: flex; flex-direction: column; gap: 12px; }
+  .hero-feature { display: flex; align-items: center; gap: 12px; font-size: 12.5px; color: rgba(255,255,255,.9); }
+  .hero-feature-ic {
+    width: 30px; height: 30px; border-radius: 8px;
+    background: rgba(255,255,255,.1);
+    display: flex; align-items: center; justify-content: center;
+    color: #bbe1fa;
+    flex-shrink: 0;
+  }
+  .hero-footer {
+    font-size: 10.5px;
+    color: rgba(187,225,250,.55);
+    border-top: 1px solid rgba(255,255,255,.08);
+    padding-top: 14px;
+    letter-spacing: .3px;
+  }
+ 
+  .login-form-side {
+    padding: 32px;
+    display: flex; align-items: center; justify-content: center;
+    background: #f5f7fa;
+    overflow-y: auto;
+  }
+  .login-form-card {
+    background: #fff;
+    border-radius: 16px;
+    padding: 34px;
+    box-shadow: 0 10px 40px rgba(15,76,117,.08);
+    width: 100%;
+    max-width: 520px;
+  }
+  .login-form-title {
+    font-size: 22px; font-weight: 800; color: var(--navy);
+    margin-bottom: 4px;
+    line-height: 1.2;
+  }
+  .login-form-sub {
+    font-size: 13px; color: var(--muted);
+    margin-bottom: 22px;
+  }
+  .login-form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px 16px;
+    margin-bottom: 18px;
+  }
+  .field-inline { display: flex; flex-direction: column; gap: 5px; margin-bottom: 0; }
+  .field-inline .lbl { font-size: 12.5px; font-weight: 600; color: #374151; }
+  .field-inline .req { color: var(--danger); }
+  .field-inline .inp,
+  .field-inline .sel {
+    padding: 9px 12px; font-size: 13.5px;
+  }
+  .field-inline .sel { padding-right: 30px; }
+  .field-inline .err {
+    font-size: 11px; min-height: 14px; margin-top: 0;
+  }
+ 
+  .login-admin-link {
+    text-align: center;
+    margin-top: 14px;
+    font-size: 12.5px;
+    color: var(--muted);
+  }
+  .login-admin-link a {
+    color: var(--blue);
+    font-weight: 600;
+    text-decoration: none;
+    cursor: pointer;
+    border-bottom: 1px dashed transparent;
+    padding-bottom: 1px;
+    transition: all .15s;
+  }
+  .login-admin-link a:hover {
+    color: var(--navy);
+    border-bottom-color: var(--navy);
+  }
+ 
+  @media (max-width: 960px) {
+    .login-split { grid-template-columns: 1fr; min-height: auto; }
+    .login-hero { padding: 32px 24px 36px; }
+    .hero-title { font-size: 26px; }
+    .hero-features { display: none; }
+    .hero-content { margin: 18px 0; }
+    .login-form-side { padding: 24px 16px; }
+  }
+  @media (max-width: 520px) {
+    .login-form-grid { grid-template-columns: 1fr; }
+    .login-form-card { padding: 24px 22px; }
+    .hero-desc { font-size: 13px; }
+    .hero-brand-text { font-size: 13px; }
+  }
+ 
+  /* responsive */
+  @media (max-width: 980px) {
+    .tk-body { grid-template-columns: 1fr; }
+    .tk-left, .tk-right { border: none; border-bottom: 1px solid #eef2f7; max-height: none; }
+    .thread { max-height: 320px; }
+  }
+  @media (max-width: 520px) {
+    .card { padding: 26px 20px; }
+    .certificate { padding: 26px 18px; }
+    .cert-title { font-size: 24px; }
+    .cert-name { font-size: 24px; }
+    .cert-score-num { font-size: 36px; }
+    .app-header { padding: 10px 14px; gap: 12px; }
+    .header-progress { display: none; }
+    .stat-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+</style>
+</head>
+<body>
+<div id="app"></div>
+ 
+<script>
+/* ============================================================
+   DATA
+   ============================================================ */
+const ADMIN_PASSWORD = "Trainor123Password";
+const PASS_PCT = 80;
+ 
+/* ============================================================
+   GOOGLE SHEETS INTEGRATION (Optional)
+   ============================================================
+   To store all training data (users, answers, scores, attempts)
+   in a Google Sheet:
+ 
+   1. Create a new Google Sheet (e.g. "Fraud Support Records").
+   2. Extensions > Apps Script. Delete the placeholder and paste
+      the code below into Code.gs. Save the project.
+   3. Deploy > New deployment > Type: "Web app".
+      Execute as: Me. Who has access: Anyone.
+   4. Copy the resulting Web App URL and paste it into the
+      GAS_URL constant a few lines below.
+   5. Leave GAS_URL empty to disable Google Sheet sync entirely.
+ 
+   -------- Apps Script code (paste into Code.gs) --------
+   const SHEET_NAME = "Records";
+ 
+   function doPost(e) {
+     const ss = SpreadsheetApp.getActiveSpreadsheet();
+     let sheet = ss.getSheetByName(SHEET_NAME);
+     if (!sheet) sheet = ss.insertSheet(SHEET_NAME);
+ 
+     if (sheet.getLastRow() === 0) {
+       sheet.appendRow([
+         "Timestamp","Name","Employee ID","Country","Trainer",
+         "Attempt","Total Marks","Max Marks","Percentage",
+         "Result","Grade","Total Time (s)","Answers (JSON)"
+       ]);
+     }
+ 
+     const d = JSON.parse(e.postData.contents);
+     sheet.appendRow([
+       d.timestamp, d.employee.name, d.employee.empId,
+       d.employee.country, d.employee.trainer, d.attempt,
+       d.totalMarks, d.maxMarks, d.percentage,
+       d.passed ? "PASSED" : "FAILED", d.grade, d.totalTime,
+       JSON.stringify(d.answers)
+     ]);
+ 
+     return ContentService
+       .createTextOutput(JSON.stringify({ success: true }))
+       .setMimeType(ContentService.MimeType.JSON);
+   }
+   -------- end Apps Script code --------
+   ============================================================ */
+const GAS_URL = ""; // <-- Paste your Web App URL here
+ 
+const COUNTRIES = [
+  "United States","United Kingdom","Canada","Australia","India","Philippines","Ireland",
+  "Germany","France","Spain","Italy","Netherlands","Sweden","Denmark","Norway","Finland",
+  "Belgium","Switzerland","Austria","Poland","Portugal","Greece","Czech Republic","Hungary",
+  "Romania","Turkey","Israel","UAE","Saudi Arabia","Egypt","South Africa","Nigeria","Kenya",
+  "Morocco","Brazil","Argentina","Chile","Colombia","Mexico","Peru","Japan","South Korea",
+  "China","Hong Kong","Taiwan","Singapore","Malaysia","Indonesia","Thailand","Vietnam",
+  "New Zealand","Bangladesh","Pakistan","Sri Lanka","Nepal","Russia","Ukraine"
+];
+ 
+const ASSIGNEES = [
+  "Fraud Support Management",
+  "Fraud Support Team Lead",
+  "Fraud Support Agent - Tier 1",
+  "Fraud Support Agent - Tier 2",
+  "Fraud Investigation Team",
+  "Content Moderation Team",
+  "SGS Escalation Queue",
+  "-- Unassigned --"
+];
+ 
+const INTENTS = [
+  "User Review Status","Review Dispute","Missing Guest Reviews","Allegation of Fraud",
+  "Ranking Drop","Warning Letter","Blackmailing","Live Site Issue","Fraud Letter","Other"
+];
+ 
+const PRIORITIES = ["Low","Normal","High","Urgent"];
+const LANGUAGES = ["English","Spanish","French","German","Italian","Portuguese","Hindi","Japanese"];
+ 
+const TICKET_REASONS = [
+  "Red badge on property",
+  "Penalty mitigated",
+  "Escalate to Tier 2",
+  "Property sweep",
+  "Escalate to SGS Second Opinion"
+];
+ 
+const MACROS = [
+  { name: "Acknowledge receipt", desc: "Standard acknowledgement", text: "Hello,\n\nThank you for reaching out to Tripadvisor Fraud Support. We have received your query and are currently reviewing it. We will get back to you within 24-48 business hours with an update.\n\nBest regards,\nTripadvisor Fraud Support Team" },
+  { name: "Request more info", desc: "Ask for additional details", text: "Hello,\n\nThank you for contacting us. To help us investigate this further, we would need the following details:\n\n- Property/Listing ID\n- Screenshots or documentary evidence\n- Approximate date of the incident\n\nPlease share these at your earliest convenience so we can proceed with the review.\n\nBest regards,\nTripadvisor Fraud Support Team" },
+  { name: "Escalate to Tier 2", desc: "Send to T2 review queue", text: "Hello,\n\nThank you for reaching out. We have reviewed your case and it has been escalated to our Tier 2 Fraud Support team for further investigation. You can expect a response within 3-5 business days.\n\nBest regards,\nTripadvisor Fraud Support Team" },
+  { name: "Escalate to Fraud Investigation", desc: "Formal fraud investigation", text: "Hello,\n\nWe take allegations of review fraud and blackmail very seriously. Your case has been forwarded to our dedicated Fraud Investigation Team. They will conduct a thorough review and reach out with next steps.\n\nBest regards,\nTripadvisor Fraud Support Team" },
+  { name: "Owner verification pending", desc: "Awaiting OT verification", text: "Hello,\n\nThank you for contacting Tripadvisor. To process your request, we first need to verify your ownership of the property through our Owner Tool. Once verification is complete, we will investigate your concern and follow up.\n\nBest regards,\nTripadvisor Fraud Support Team" },
+  { name: "Send status update", desc: "Update user on review status", text: "Hello,\n\nThank you for your patience. We have checked the status of your review in our moderation system. Please note that reviews may take additional time to be processed if flagged by our automated systems.\n\nWe will update you as soon as there is a change in status.\n\nBest regards,\nTripadvisor Fraud Support Team" },
+  { name: "Escalate to Content Team", desc: "For live site / listing issues", text: "Hello,\n\nThank you for bringing this to our attention. The reported issue with your live listing has been forwarded to our Content Moderation Team for correction. They will address this within 2-3 business days.\n\nBest regards,\nTripadvisor Fraud Support Team" },
+  { name: "Escalate to SGS Second Opinion", desc: "SGS review for warning/fraud letters", text: "Hello,\n\nThank you for your response regarding the warning/fraud letter. Your appeal has been forwarded to the SGS team for a Second Opinion review. They will conduct an independent assessment and revert.\n\nBest regards,\nTripadvisor Fraud Support Team" },
+  { name: "Close - resolved", desc: "Mark ticket resolved", text: "Hello,\n\nWe are glad we could assist you. This ticket is now being marked as resolved. If you have any further questions, please do not hesitate to reach out.\n\nBest regards,\nTripadvisor Fraud Support Team" }
+];
+ 
+/* Question set — one ticket per scenario */
+const QUESTIONS = [
+  {
+    id: 1, ticketId: "3454342",
+    requester: "john.martinez@gmail.com", requesterName: "John Martinez",
+    topic: "Status of my Review", intent: "User Review Status",
+    ticketReasonText: "Status of my review",
+    priority: "Normal", language: "English", vacation: false, gdpr: false,
+    tags: ["fs_status-of-my-review", "agent_copilot_enabled", "status_of_my_review", "lang_eng", "ccs_removed", "user_ticket"],
+    locationId: "8834521", reviewId: "1029384756", templateId: "TPL-USR-2001",
+    refId: "ref:_00DA00I0Rf._5000K5Cxk1G:ref", ticketAge: "27m ago",
+    emailBody: "Hello,\n\nI submitted a review for The Grand Palace Hotel about 2 weeks ago and it still hasn't appeared on the listing. Can you please check the status of my review? My username is JohnM_Traveler.\n\nI stayed at this hotel from July 5th to July 8th. My booking confirmation number is TA-8823-9917.\n\nThank you,\nJohn Martinez",
+    ticketType: "user",
+    correctMacro: "Send status update",
+    correctReasons: []
+  },
+  {
+    id: 2, ticketId: "4521187",
+    requester: "rajesh.kumar@grandheritage.in", requesterName: "Rajesh Kumar",
+    topic: "Review Dispute", intent: "Review Dispute",
+    ticketReasonText: "Review dispute - owner request",
+    priority: "High", language: "English", vacation: false, gdpr: false,
+    tags: ["fs_review-dispute", "agent_copilot_enabled", "do-not-send-survey", "owner_ticket", "lang_eng", "verified_owner", "escalation_needed"],
+    locationId: "1928374", reviewId: "2938475601", templateId: "TPL-OWN-3002",
+    refId: "ref:_00DA00I0Rf._5000K5Dbn2H:ref", ticketAge: "1h ago",
+    emailBody: "Dear Tripadvisor Support,\n\nI am the owner of Grand Heritage Resort (Listing ID: 1928374). A guest posted a defamatory review claiming our hotel had bed bugs, which is completely false. We had pest control done last week and have certificates to prove it.\n\nThe review is affecting our bookings significantly. Please remove this review immediately.\n\nWe have attached the pest control certificate for your reference.\n\nRegards,\nRajesh Kumar\nGrand Heritage Resort",
+    ticketType: "owner",
+    correctMacro: "Escalate to Tier 2",
+    correctReasons: ["Escalate to Tier 2"]
+  },
+  {
+    id: 3, ticketId: "7823451",
+    requester: "sarah.t@seasideinn.co.uk", requesterName: "Sarah Thompson",
+    topic: "Missing Guest Reviews", intent: "Missing Guest Reviews",
+    ticketReasonText: "Missing reviews - owner report",
+    priority: "Normal", language: "English", vacation: true, gdpr: false,
+    tags: ["fs_missing-reviews", "agent_copilot_enabled", "owner_ticket", "vacation_rental", "lang_eng", "property_sweep_needed"],
+    locationId: "5567823", reviewId: "3847562109", templateId: "TPL-OWN-3003",
+    refId: "ref:_00DA00I0Rf._5000K5Fcr3J:ref", ticketAge: "2h ago",
+    emailBody: "Hi Team,\n\nSeveral of our guests have told us they left reviews for Seaside Inn (ID: 5567823) but these reviews are not showing up on our listing. In the past month, at least 5 guests said they posted reviews.\n\nOur ranking has dropped because of this and we are losing bookings during peak season. We need this investigated urgently.\n\nCould you please conduct a property sweep and let us know what's happening?\n\nBest regards,\nSarah Thompson\nSeaside Inn",
+    ticketType: "owner",
+    correctMacro: "Owner verification pending",
+    correctReasons: ["Property sweep"]
+  },
+  {
+    id: 4, ticketId: "6190234",
+    requester: "lisa.wong@yahoo.com", requesterName: "Lisa Wong",
+    topic: "Allegation of Fraud", intent: "Allegation of Fraud",
+    ticketReasonText: "User allegation - fake reviews",
+    priority: "High", language: "English", vacation: false, gdpr: true,
+    tags: ["fs_allegation-of-fraud", "agent_copilot_enabled", "user_ticket", "gdpr_flagged", "lang_eng", "investigation_needed"],
+    locationId: "9012456", reviewId: "4562398174", templateId: "TPL-USR-2004",
+    refId: "ref:_00DA00I0Rf._5000K5Gds4K:ref", ticketAge: "45m ago",
+    emailBody: "Dear Tripadvisor,\n\nI believe the Blue Ocean Resort (Property ID: 9012456) is posting fake reviews. I stayed there last month and the experience was terrible, but they have hundreds of 5-star reviews that seem fabricated.\n\nThe writing style in many reviews is identical. Many of the recent reviewers have only reviewed this one property. Something is definitely not right.\n\nPlease investigate this property. I can provide more details if needed.\n\nThank you,\nLisa Wong",
+    ticketType: "user",
+    correctMacro: "Escalate to Fraud Investigation",
+    correctReasons: ["Property sweep"]
+  },
+  {
+    id: 5, ticketId: "9034521",
+    requester: "david.b@mountainlodge.com", requesterName: "David Brown",
+    topic: "Ranking Drop", intent: "Ranking Drop",
+    ticketReasonText: "Ranking drop - owner concern",
+    priority: "High", language: "English", vacation: false, gdpr: false,
+    tags: ["fs_ranking-drop", "agent_copilot_enabled", "owner_ticket", "penalty_check", "lang_eng", "verified_owner"],
+    locationId: "8834521", reviewId: "5238947103", templateId: "TPL-OWN-3005",
+    refId: "ref:_00DA00I0Rf._5000K5Hef5L:ref", ticketAge: "3h ago",
+    emailBody: "Hello Support,\n\nOur Mountain Lodge (ID: 8834521) has dropped from #3 to #47 in our area rankings overnight. We haven't received any negative reviews recently and our service quality hasn't changed.\n\nWe suspect either competitor manipulation or a system issue. This is severely impacting our bookings.\n\nCan you please check if there are any penalties or flags on our property? We need this resolved urgently.\n\nDavid Brown\nMountain Lodge",
+    ticketType: "owner",
+    correctMacro: "Send status update",
+    correctReasons: ["Red badge on property"]
+  },
+  {
+    id: 6, ticketId: "2345678",
+    requester: "priya.sharma@luxurypalace.com", requesterName: "Priya Sharma",
+    topic: "Warning Letter", intent: "Warning Letter",
+    ticketReasonText: "Warning letter appeal",
+    priority: "High", language: "English", vacation: false, gdpr: false,
+    tags: ["fs_warning-letter", "agent_copilot_enabled", "owner_ticket", "appeal", "lang_eng", "sgs_review_needed"],
+    locationId: "3345612", reviewId: "6847293058", templateId: "TPL-OWN-3006",
+    refId: "ref:_00DA00I0Rf._5000K5Ifg6M:ref", ticketAge: "5h ago",
+    emailBody: "Dear Tripadvisor Team,\n\nWe received a warning letter regarding suspected review fraud on our property Luxury Palace Hotel (ID: 3345612). We would like to clarify that we have never engaged in any fraudulent review activity.\n\nWe believe a former disgruntled employee may have solicited reviews without our knowledge. We are willing to cooperate fully with any investigation.\n\nWe request a review of this warning and an opportunity to explain our position. We have been in business for 15 years with no prior issues.\n\nRegards,\nPriya Sharma\nGeneral Manager, Luxury Palace Hotel",
+    ticketType: "owner",
+    correctMacro: "Escalate to SGS Second Opinion",
+    correctReasons: ["Penalty mitigated"]
+  },
+  {
+    id: 7, ticketId: "5567890",
+    requester: "carlos@beachparadise.com", requesterName: "Carlos Mendez",
+    topic: "Blackmailing", intent: "Blackmailing",
+    ticketReasonText: "Guest blackmail - owner report",
+    priority: "Urgent", language: "English", vacation: false, gdpr: false,
+    tags: ["fs_blackmailing", "agent_copilot_enabled", "owner_ticket", "urgent", "lang_eng", "evidence_provided"],
+    locationId: "7789012", reviewId: "7293846155", templateId: "TPL-OWN-3007",
+    refId: "ref:_00DA00I0Rf._5000K5Jgh7N:ref", ticketAge: "15m ago",
+    emailBody: "URGENT - Tripadvisor Support,\n\nA guest is blackmailing us. They are threatening to post a negative review unless we give them a full refund for their 7-night stay. They stayed all 7 nights with no complaints during their stay.\n\nThey sent us screenshots of a draft negative review and demanded $2,000 refund. We have all their emails as proof.\n\nWe need immediate action. Property: Beach Paradise Resort (ID: 7789012).\n\nPlease help us. This is affecting our business and morale.\n\nCarlos Mendez",
+    ticketType: "owner",
+    correctMacro: "Escalate to Fraud Investigation",
+    correctReasons: ["Escalate to Tier 2"]
+  },
+  {
+    id: 8, ticketId: "8901234",
+    requester: "ahmed.h@cityhotel.com", requesterName: "Ahmed Hassan",
+    topic: "Live Site Issue", intent: "Live Site Issue",
+    ticketReasonText: "Live listing incorrect details",
+    priority: "Normal", language: "English", vacation: false, gdpr: false,
+    tags: ["fs_live-site", "agent_copilot_enabled", "owner_ticket", "content_team", "lang_eng", "photo_issue"],
+    locationId: "4456789", reviewId: "8473926140", templateId: "TPL-OWN-3008",
+    refId: "ref:_00DA00I0Rf._5000K5Khi8O:ref", ticketAge: "4h ago",
+    emailBody: "Hello,\n\nOur property City Center Hotel (ID: 4456789) is showing incorrect photos on the live Tripadvisor site. The main photo is from a completely different hotel and our contact number is wrong.\n\nThis has been live for 3 days and is confusing our potential guests. We are losing bookings.\n\nPlease correct this immediately. We have the correct photos ready to upload.\n\nAhmed Hassan\nFront Desk Manager, City Center Hotel",
+    ticketType: "owner",
+    correctMacro: "Escalate to Content Team",
+    correctReasons: []
+  },
+  {
+    id: 9, ticketId: "1234509",
+    requester: "mike.j@outlook.com", requesterName: "Mike Johnson",
+    topic: "Status of my Review", intent: "User Review Status",
+    ticketReasonText: "Published review disappeared",
+    priority: "Normal", language: "English", vacation: false, gdpr: true,
+    tags: ["fs_status-of-my-review", "agent_copilot_enabled", "user_ticket", "gdpr_flagged", "lang_eng", "review_removed"],
+    locationId: "6612378", reviewId: "9384756123", templateId: "TPL-USR-2009",
+    refId: "ref:_00DA00I0Rf._5000K5Lij9P:ref", ticketAge: "6h ago",
+    emailBody: "Hi,\n\nI wrote a review for Oceanview Resort 3 weeks ago. I got an email saying it was published but now I can't find it on the listing page. Did you remove my review? I want to know why.\n\nI spent good money at this hotel and deserve to share my honest experience with other travelers. The review was factual and not offensive.\n\nPlease let me know the status.\n\nMike Johnson",
+    ticketType: "user",
+    correctMacro: "Send status update",
+    correctReasons: ["Red badge on property"]
+  },
+  {
+    id: 10, ticketId: "6789012",
+    requester: "maria.g@hilltopresort.com", requesterName: "Maria Garcia",
+    topic: "Fraud Letter", intent: "Fraud Letter",
+    ticketReasonText: "Fraud penalty letter appeal",
+    priority: "Urgent", language: "English", vacation: false, gdpr: false,
+    tags: ["fs_fraud-letter", "agent_copilot_enabled", "owner_ticket", "do-not-send-survey", "lang_eng", "legal_threat", "sgs_review_needed"],
+    locationId: "9912345", reviewId: "0475839261", templateId: "TPL-OWN-3010",
+    refId: "ref:_00DA00I0Rf._5000K5Mjk10Q:ref", ticketAge: "8h ago",
+    emailBody: "Dear Tripadvisor,\n\nWe received a fraud penalty letter stating our property Hilltop Resort & Spa (ID: 9912345) has been penalized for review manipulation. Our bubble rating has been reduced and a red penalty badge is showing on our listing.\n\nWe are devastated. We have been in business for 20 years and never engaged in fraud. We believe our competitors may be behind this. We have hired legal counsel and will take legal action if this is not resolved fairly.\n\nWe request an independent review of this decision through the SGS Second Opinion process.\n\nMaria Garcia\nOwner, Hilltop Resort & Spa",
+    ticketType: "owner",
+    correctMacro: "Escalate to SGS Second Opinion",
+    correctReasons: ["Escalate to SGS Second Opinion"]
+  }
+];
+ 
+/* ============================================================
+   STATE
+   ============================================================ */
+const storage = {
+  get(){ try { return JSON.parse(localStorage.getItem("fs_records")) || []; } catch { return []; } },
+  set(v){ try { localStorage.setItem("fs_records", JSON.stringify(v)); } catch {} }
+};
+ 
+let state = {
+  screen: "login",
+  user: { name: "", empId: "", country: "", trainer: "" },
+  errors: { name: "", empId: "", country: "", trainer: "" },
+  showAdminPrompt: false, adminPw: "", adminErr: "",
+  qi: 0, results: [], // one entry per completed question
+  ticket: null,       // working state for current ticket
+  reply: "", replyMenuOpen: false,
+  macroOpen: false,
+  toast: "",
+  timer: 0, timerId: null
+};
+ 
+/* ============================================================
+   HELPERS
+   ============================================================ */
+const $ = id => document.getElementById(id);
+const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const pad = n => String(n).padStart(2,"0");
+const fmtTime = t => pad(Math.floor(t/60)) + ":" + pad(t%60);
+const rand = (min,max) => Math.floor(Math.random()*(max-min+1))+min;
+ 
+function pastTime(hoursAgo){
+  const d = new Date(Date.now() - hoursAgo*3600*1000);
+  return d.toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+}
+function nowTime(){ return new Date().toLocaleTimeString([], { hour:'numeric', minute: '2-digit' }); }
+ 
+function initTicketState(q){
+  state.ticket = {
+    assignee: ASSIGNEES[0],
+    form: "Ticket",
+    tags: [...q.tags],
+    intent: q.intent,
+    gdpr: q.gdpr,
+    priority: q.priority,
+    language: q.language,
+    vacation: q.vacation,
+    locationId: q.locationId,
+    reviewId: q.reviewId,
+    ticketReasonText: q.ticketReasonText,
+    reasonChecks: [false, false, false, false, false],
+    templateId: q.templateId,
+    notes: "",
+    appliedMacro: null,
+    messages: [
+      { type: "in", from: q.requesterName, initial: q.requesterName[0], time: q.ticketAge, body: q.emailBody }
+    ]
+  };
+  state.reply = "";
+  state.replyMenuOpen = false;
+  state.macroOpen = false;
+}
+ 
+function showToast(msg, ms){
+  state.toast = msg;
+  render();
+  clearTimeout(window._toastT);
+  window._toastT = setTimeout(()=>{ state.toast = ""; render(); }, ms || 2000);
+}
+ 
+/* ============================================================
+   TIMER
+   ============================================================ */
+function startTimer(){
+  stopTimer();
+  state.timerId = setInterval(()=>{
+    state.timer++;
+    const el = $("timer");
+    if(el){
+      el.textContent = "⏱ " + fmtTime(state.timer);
+      el.className = "timer-chip" + (state.timer > 180 ? " danger" : state.timer > 120 ? " warn" : "");
+    }
+  }, 1000);
+}
+function stopTimer(){ if(state.timerId){ clearInterval(state.timerId); state.timerId = null; } }
+ 
+/* ============================================================
+   HANDLERS - LOGIN
+   ============================================================ */
+function validateName(v){
+  if(!v.trim()) return "Name is required";
+  if(!/^[A-Za-z][A-Za-z\s'\-.]{1,49}$/.test(v.trim())) return "Only letters, spaces, hyphens and apostrophes";
+  return "";
+}
+function validateEmpId(v){
+  if(!v.trim()) return "Employee ID is required";
+  if(!/^\d{3,10}$/.test(v.trim())) return "Only numbers (3-10 digits)";
+  return "";
+}
+function onNameInput(e){
+  const v = e.target.value.replace(/[^A-Za-z\s'\-.]/g, "");
+  e.target.value = v;
+  state.user.name = v;
+  const err = $("err-name"); if(err) err.textContent = "";
+}
+function onEmpIdInput(e){
+  const v = e.target.value.replace(/[^0-9]/g, "");
+  e.target.value = v;
+  state.user.empId = v;
+  const err = $("err-empId"); if(err) err.textContent = "";
+}
+function onCountryChange(e){ state.user.country = e.target.value; const err = $("err-country"); if(err) err.textContent = ""; }
+function onTrainerInput(e){
+  const v = e.target.value.replace(/[^A-Za-z\s'\-.]/g, "");
+  e.target.value = v;
+  state.user.trainer = v;
+  const err = $("err-trainer"); if(err) err.textContent = "";
+}
+function handleLogin(){
+  const u = state.user;
+  const errs = {
+    name: validateName(u.name),
+    empId: validateEmpId(u.empId),
+    country: u.country ? "" : "Please select your country",
+    trainer: validateName(u.trainer) ? "Trainer name required (letters only)" : ""
+  };
+  state.errors = errs;
+  if(errs.name || errs.empId || errs.country || errs.trainer){ render(); return; }
+  go("instructions");
+}
+ 
+/* ============================================================
+   HANDLERS - ADMIN
+   ============================================================ */
+function openAdmin(){ state.showAdminPrompt = true; state.adminPw = ""; state.adminErr = ""; render(); setTimeout(()=>{ const p = $("admin-pw"); if(p) p.focus(); }, 50); }
+function closeAdmin(){ state.showAdminPrompt = false; state.adminPw = ""; state.adminErr = ""; render(); }
+function submitAdminPw(){
+  if(state.adminPw === ADMIN_PASSWORD){
+    state.showAdminPrompt = false; state.adminPw = ""; state.adminErr = "";
+    go("admin");
+  } else {
+    state.adminErr = "Incorrect password. Please try again.";
+    render();
+  }
+}
+function clearRecords(){ if(confirm("Clear all training records? This cannot be undone.")){ storage.set([]); render(); } }
+ 
+/* ============================================================
+   HANDLERS - QUIZ
+   ============================================================ */
+function startQuiz(){
+  state.qi = 0; state.results = []; state.timer = 0;
+  initTicketState(QUESTIONS[0]);
+  go("quiz");
+  startTimer();
+}
+function go(screen){
+  if(screen !== "quiz") stopTimer();
+  state.screen = screen;
+  render();
+}
+ 
+function setAssignee(v){ state.ticket.assignee = v; showToast("Assignee set to: " + v); }
+function takeIt(){
+  const meName = state.user.name || "You";
+  state.ticket.assignee = "Fraud Support Agent - " + meName;
+  showToast("Ticket assigned to you");
+}
+function setForm(v){ state.ticket.form = v; }
+function setIntent(v){ state.ticket.intent = v; }
+function setPriority(v){ state.ticket.priority = v; }
+function setLanguage(v){ state.ticket.language = v; }
+function toggleGdpr(){ state.ticket.gdpr = !state.ticket.gdpr; render(); }
+function toggleVacation(){ state.ticket.vacation = !state.ticket.vacation; render(); }
+function toggleReason(i){ state.ticket.reasonChecks[i] = !state.ticket.reasonChecks[i]; render(); }
+function setLocationId(e){ state.ticket.locationId = e.target.value.replace(/[^0-9]/g,"").slice(0,7); e.target.value = state.ticket.locationId; }
+function setReviewId(e){ state.ticket.reviewId = e.target.value.replace(/[^0-9]/g,"").slice(0,10); e.target.value = state.ticket.reviewId; }
+function setTemplateId(e){ state.ticket.templateId = e.target.value.slice(0,20); }
+function setNotes(e){ state.ticket.notes = e.target.value; }
+function removeTag(i){ state.ticket.tags.splice(i,1); render(); }
+ 
+function setReply(e){ state.reply = e.target.value; }
+function toggleReplyMenu(){
+  if(!state.reply.trim()){ showToast("Please type a message first"); return; }
+  state.replyMenuOpen = !state.replyMenuOpen; state.macroOpen = false; render();
+}
+function sendReply(type){
+  const text = state.reply.trim();
+  if(!text) return;
+  state.ticket.messages.push({
+    type: type,
+    from: state.user.name || "Agent",
+    initial: (state.user.name || "A")[0].toUpperCase(),
+    time: nowTime(),
+    body: text
+  });
+  state.reply = "";
+  state.replyMenuOpen = false;
+  render();
+  // scroll thread to bottom
+  setTimeout(()=>{ const t = $("thread"); if(t) t.scrollTop = t.scrollHeight; }, 50);
+  showToast(type === "internal" ? "Internal note added" : "Public reply sent");
+}
+ 
+function toggleMacro(){ state.macroOpen = !state.macroOpen; state.replyMenuOpen = false; render(); }
+function applyMacro(idx){
+  const m = MACROS[idx];
+  state.ticket.appliedMacro = m.name;
+  state.reply = m.text;
+  state.macroOpen = false;
+  render();
+  showToast("Macro loaded: " + m.name + " — you can now edit and send");
+  setTimeout(()=>{ const ta = $("reply-textarea"); if(ta){ ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length); } }, 50);
+}
+ 
+function completeTicket(){
+  const q = QUESTIONS[state.qi];
+  const t = state.ticket;
+  const macroCorrect = t.appliedMacro === q.correctMacro;
+  const anyCorrectCheck = q.correctReasons.length === 0
+    ? true
+    : q.correctReasons.some(r => t.reasonChecks[TICKET_REASONS.indexOf(r)]);
+  const sentReply = t.messages.some(m => m.type === "internal" || m.type === "public");
+ 
+  let marks = 0;
+  if(macroCorrect) marks += 7;
+  if(anyCorrectCheck) marks += 2;
+  if(sentReply) marks += 1;
+ 
+  state.results.push({
+    qi: state.qi,
+    topic: q.topic, ticketId: q.ticketId,
+    appliedMacro: t.appliedMacro || "(none)",
+    correctMacro: q.correctMacro,
+    macroCorrect,
+    checkedReasons: TICKET_REASONS.filter((_,i)=>t.reasonChecks[i]),
+    correctReasons: q.correctReasons,
+    anyCorrectCheck,
+    sentReply,
+    marks,
+    time: state.timer
+  });
+ 
+  if(state.qi < QUESTIONS.length - 1){
+    state.qi++;
+    state.timer = 0;
+    initTicketState(QUESTIONS[state.qi]);
+    render();
+    startTimer();
+    window.scrollTo(0,0);
+  } else {
+    stopTimer();
+    // save record + sync to Google Sheet
+    const totalMarks = state.results.reduce((s,r)=>s+r.marks, 0);
+    const maxMarks = QUESTIONS.length * 10;
+    const pct = Math.round((totalMarks/maxMarks) * 100);
+    const grade = pct >= 95 ? "Excellent" : pct >= 90 ? "Outstanding" : pct >= 85 ? "Very Good" : pct >= 80 ? "Good" : "Below Passing";
+    const totalTime = state.results.reduce((s,r)=>s+r.time, 0);
+    const attempt = getAttemptCount(state.user.empId);
+ 
+    // save locally
+    const list = storage.get();
+    list.push({
+      ...state.user, attempt, marks: totalMarks, max: maxMarks, pct, grade,
+      passed: pct >= PASS_PCT, date: new Date().toLocaleString()
+    });
+    storage.set(list);
+ 
+    // sync to Google Sheet
+    sendToGoogleSheet({
+      timestamp: new Date().toISOString(),
+      employee: { ...state.user },
+      attempt,
+      totalMarks, maxMarks, percentage: pct, grade,
+      passed: pct >= PASS_PCT,
+      totalTime,
+      answers: state.results.map(r => ({
+        ticketNum: r.qi + 1,
+        ticketId: r.ticketId,
+        topic: r.topic,
+        appliedMacro: r.appliedMacro,
+        correctMacro: r.correctMacro,
+        macroCorrect: r.macroCorrect,
+        checkedReasons: r.checkedReasons,
+        correctReasons: r.correctReasons,
+        sentReply: r.sentReply,
+        marks: r.marks,
+        timeSpent: r.time
+      }))
+    });
+ 
+    go("results");
+  }
+}
+ 
+function newSession(){
+  state.user = { name: "", empId: "", country: "", trainer: "" };
+  state.errors = { name: "", empId: "", country: "", trainer: "" };
+  go("login");
+}
+ 
+/* ============================================================
+   CERTIFICATE
+   ============================================================ */
+function downloadCert(){
+  const totalMarks = state.results.reduce((s,r)=>s+r.marks, 0);
+  const maxMarks = QUESTIONS.length * 10;
+  const pct = Math.round((totalMarks/maxMarks) * 100);
+  if(pct < PASS_PCT){
+    showToast("You need at least " + PASS_PCT + "% to download the certificate", 3000);
+    return;
+  }
+  const u = state.user;
+  const grade = pct >= 95 ? "Excellent" : pct >= 90 ? "Outstanding" : pct >= 85 ? "Very Good" : "Good";
+  const certId = "TA-FS-" + Date.now().toString(36).toUpperCase();
+  const dateStr = new Date().toLocaleDateString([], { year:'numeric', month:'long', day:'numeric' });
+ 
+  const svg = `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 636" width="900" height="636">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0f4c75"/><stop offset="100%" stop-color="#1b262c"/>
+    </linearGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#f4d78f"/><stop offset="50%" stop-color="#f7e8b5"/><stop offset="100%" stop-color="#c9a747"/>
+    </linearGradient>
+  </defs>
+  <rect width="900" height="636" fill="url(#bg)" rx="14"/>
+  <rect x="18" y="18" width="864" height="600" rx="10" fill="none" stroke="#3282b8" stroke-width="2" stroke-dasharray="10 6"/>
+  <rect x="30" y="30" width="840" height="576" rx="6" fill="none" stroke="#3282b8" stroke-width="1" opacity=".4"/>
+ 
+  <text x="450" y="70" text-anchor="middle" fill="#bbe1fa" font-family="Georgia,serif" font-size="12" letter-spacing="8">TRIPADVISOR · FRAUD SUPPORT</text>
+ 
+  <text x="450" y="128" text-anchor="middle" fill="url(#gold)" font-family="Georgia,serif" font-size="38" font-weight="bold">Certificate of Completion</text>
+  <line x1="280" y1="150" x2="620" y2="150" stroke="url(#gold)" stroke-width="1.5"/>
+ 
+  <text x="450" y="190" text-anchor="middle" fill="#bbe1fa" font-family="Arial,sans-serif" font-size="14">This is to certify that</text>
+ 
+  <text x="450" y="238" text-anchor="middle" fill="#ffffff" font-family="Georgia,serif" font-size="34" font-weight="bold">${esc(u.name)}</text>
+  <text x="450" y="266" text-anchor="middle" fill="#bbe1fa" font-family="Arial,sans-serif" font-size="12">Employee ID: ${esc(u.empId)}   ·   ${esc(u.country)}</text>
+ 
+  <text x="450" y="308" text-anchor="middle" fill="#bbe1fa" font-family="Arial,sans-serif" font-size="14">has successfully completed the</text>
+  <text x="450" y="342" text-anchor="middle" fill="#3282b8" font-family="Georgia,serif" font-size="22" font-weight="bold">Content Moderation Assessment</text>
+  <text x="450" y="365" text-anchor="middle" fill="#bbe1fa" font-family="Arial,sans-serif" font-size="13" font-style="italic">Fraud Support · Zendesk Simulator Training</text>
+ 
+  <line x1="150" y1="395" x2="750" y2="395" stroke="#3282b8" stroke-width="1" opacity=".5"/>
+ 
+  <text x="230" y="440" text-anchor="middle" fill="#bbe1fa" font-family="Arial,sans-serif" font-size="11">FINAL SCORE</text>
+  <text x="230" y="475" text-anchor="middle" fill="#ffffff" font-family="Georgia,serif" font-size="34" font-weight="bold">${totalMarks}/${maxMarks}</text>
+ 
+  <text x="450" y="440" text-anchor="middle" fill="#bbe1fa" font-family="Arial,sans-serif" font-size="11">PERCENTAGE</text>
+  <text x="450" y="475" text-anchor="middle" fill="url(#gold)" font-family="Georgia,serif" font-size="34" font-weight="bold">${pct}%</text>
+ 
+  <text x="670" y="440" text-anchor="middle" fill="#bbe1fa" font-family="Arial,sans-serif" font-size="11">GRADE</text>
+  <text x="670" y="475" text-anchor="middle" fill="#ffffff" font-family="Georgia,serif" font-size="24" font-weight="bold">${grade}</text>
+ 
+  <line x1="150" y1="510" x2="750" y2="510" stroke="#3282b8" stroke-width="1" opacity=".5"/>
+ 
+  <text x="180" y="548" text-anchor="middle" fill="#bbe1fa" font-family="Arial,sans-serif" font-size="10">TRAINER</text>
+  <text x="180" y="568" text-anchor="middle" fill="#ffffff" font-family="Arial,sans-serif" font-size="12" font-weight="600">${esc(u.trainer)}</text>
+ 
+  <text x="450" y="548" text-anchor="middle" fill="#bbe1fa" font-family="Arial,sans-serif" font-size="10">DATE OF COMPLETION</text>
+  <text x="450" y="568" text-anchor="middle" fill="#ffffff" font-family="Arial,sans-serif" font-size="12" font-weight="600">${dateStr}</text>
+ 
+  <text x="720" y="548" text-anchor="middle" fill="#bbe1fa" font-family="Arial,sans-serif" font-size="10">CERTIFICATE ID</text>
+  <text x="720" y="568" text-anchor="middle" fill="#ffffff" font-family="Arial,sans-serif" font-size="11" font-weight="600">${certId}</text>
+ 
+  <text x="450" y="605" text-anchor="middle" fill="#3282b8" font-family="Georgia,serif" font-size="10" font-style="italic">Fraud Support Training Program · Powered by Sutherland · Tripadvisor Account</text>
+</svg>`;
+  const blob = new Blob([svg], { type: "image/svg+xml" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = "FraudSupport_Certificate_" + u.name.replace(/\s/g,"_") + "_" + u.empId + ".svg";
+  a.click(); URL.revokeObjectURL(url);
+  showToast("Certificate downloaded");
+}
+ 
+/* ============================================================
+   GOOGLE SHEETS SYNC
+   ============================================================ */
+function getAttemptCount(empId){
+  const list = storage.get();
+  return list.filter(r => r.empId === empId).length + 1;
+}
+ 
+function sendToGoogleSheet(payload){
+  if(!GAS_URL) return;
+  try {
+    fetch(GAS_URL, {
+      method: "POST",
+      mode: "no-cors",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify(payload)
+    }).then(()=>{
+      console.log("[GAS] synced");
+    }).catch(err => console.warn("[GAS] sync failed:", err));
+  } catch(err){
+    console.warn("[GAS] sync error:", err);
+  }
+}
+ 
+/* ============================================================
+   RENDERERS
+   ============================================================ */
+function render(){
+  const app = $("app");
+  let html = "";
+  switch(state.screen){
+    case "login": html = renderLogin(); break;
+    case "admin": html = renderAdmin(); break;
+    case "instructions": html = renderInstructions(); break;
+    case "quiz": html = renderQuiz(); break;
+    case "results": html = renderResults(); break;
+  }
+  app.innerHTML = html;
+  bindAfterRender();
+}
+ 
+/* ---- LOGIN ---- */
+function renderLogin(){
+  const e = state.errors;
+  const countryOpts = '<option value="">Select country</option>' +
+    COUNTRIES.map(c=>`<option value="${esc(c)}"${state.user.country===c?' selected':''}>${esc(c)}</option>`).join('');
+ 
+  return `
+    <div class="login-split">
+      <!-- LEFT: Brand / Hero -->
+      <div class="login-hero">
+        <div class="hero-brand-row">
+          <div class="hero-logo">FS</div>
+          <div>
+            <div class="hero-brand-text">Fraud Support Training</div>
+            <div class="hero-brand-sub">Sutherland &middot; Tripadvisor Account</div>
+          </div>
+        </div>
+ 
+        <div class="hero-content">
+          <span class="hero-tag">CONTENT MODERATION ASSESSMENT</span>
+          <h1 class="hero-title">Zendesk<br><span class="accent">Simulator Training</span></h1>
+          <p class="hero-desc">
+            A hands-on Zendesk simulation designed to test your Fraud Support workflow skills. Handle 10 real-world ticket scenarios and earn your training certificate.
+          </p>
+ 
+          <div class="hero-features">
+            <div class="hero-feature">
+              <div class="hero-feature-ic">
+                <svg width="15" height="15" fill="currentColor" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>
+              </div>
+              <span>10 real-world Fraud Support tickets</span>
+            </div>
+            <div class="hero-feature">
+              <div class="hero-feature-ic">
+                <svg width="15" height="15" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.2 14.2L11 13V7h1.5v5.2l4.5 2.7-.8 1.3z"/></svg>
+              </div>
+              <span>Instant scoring &amp; per-ticket feedback</span>
+            </div>
+            <div class="hero-feature">
+              <div class="hero-feature-ic">
+                <svg width="15" height="15" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2L2 7v10c0 5.55 3.84 10.74 10 12 6.16-1.26 10-6.45 10-12V7l-10-5z"/></svg>
+              </div>
+              <span>Downloadable certificate at 80%+</span>
+            </div>
+          </div>
+        </div>
+ 
+        <div class="hero-footer">&copy; Sutherland &middot; Fraud Support Training Program</div>
+      </div>
+ 
+      <!-- RIGHT: Form -->
+      <div class="login-form-side">
+        <div class="login-form-card">
+          <div class="login-form-title">Sign in to begin</div>
+          <div class="login-form-sub">Enter your details to access the assessment</div>
+ 
+          <div class="login-form-grid">
+            <div class="field-inline">
+              <label class="lbl">Employee Name <span class="req">*</span></label>
+              <input class="inp" id="in-name" placeholder="e.g. Anoop Krishnan"
+                     value="${esc(state.user.name)}" maxlength="50" autocomplete="off">
+              <div class="err" id="err-name">${esc(e.name||"")}</div>
+            </div>
+ 
+            <div class="field-inline">
+              <label class="lbl">Employee ID <span class="req">*</span></label>
+              <input class="inp" id="in-empId" placeholder="e.g. 102345"
+                     value="${esc(state.user.empId)}" maxlength="10" inputmode="numeric" autocomplete="off">
+              <div class="err" id="err-empId">${esc(e.empId||"")}</div>
+            </div>
+ 
+            <div class="field-inline">
+              <label class="lbl">Country <span class="req">*</span></label>
+              <select class="sel" id="in-country">${countryOpts}</select>
+              <div class="err" id="err-country">${esc(e.country||"")}</div>
+            </div>
+ 
+            <div class="field-inline">
+              <label class="lbl">Trainer Name <span class="req">*</span></label>
+              <input class="inp" id="in-trainer" placeholder="Your trainer's name"
+                     value="${esc(state.user.trainer)}" maxlength="50" autocomplete="off">
+              <div class="err" id="err-trainer">${esc(e.trainer||"")}</div>
+            </div>
+          </div>
+ 
+          <button class="btn btn-primary btn-block" onclick="handleLogin()">
+            Proceed to Assessment
+            <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24" style="margin-left:4px"><path d="M12 4l-1.41 1.41L16.17 11H4v2h12.17l-5.58 5.59L12 20l8-8-8-8z"/></svg>
+          </button>
+ 
+          <div class="login-admin-link">
+            Are you an admin? <a onclick="openAdmin()">Access the admin portal</a>
+          </div>
+        </div>
+      </div>
+    </div>
+    ${state.showAdminPrompt ? renderAdminPrompt() : ""}
+    ${state.toast ? `<div class="toast">${esc(state.toast)}</div>` : ""}
+  `;
+}
+ 
+function renderAdminPrompt(){
+  return `
+    <div class="overlay" onclick="closeAdmin()">
+      <div class="modal" onclick="event.stopPropagation()">
+        <h3>Admin Portal Access</h3>
+        <p class="sub">Enter the admin password to view training records.</p>
+        <div class="field">
+          <label class="lbl">Password</label>
+          <input type="password" class="inp" id="admin-pw" placeholder="Enter admin password" value="${esc(state.adminPw)}">
+          ${state.adminErr ? `<div class="err">${esc(state.adminErr)}</div>` : `<div class="err"></div>`}
+        </div>
+        <div style="display:flex;gap:10px">
+          <button class="btn btn-ghost" style="flex:1" onclick="closeAdmin()">Cancel</button>
+          <button class="btn btn-primary" style="flex:1" onclick="submitAdminPw()">Access Panel</button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+ 
+/* ---- ADMIN ---- */
+function renderAdmin(){
+  const list = storage.get();
+  const brand = brandHeader("Admin Panel · Training Records",
+    `<button class="btn btn-outline btn-sm" onclick="go('login')">← Back to Login</button>`);
+ 
+  let body;
+  if(list.length === 0){
+    body = `<div class="empty-state">
+      <div style="font-size:36px;margin-bottom:12px">📋</div>
+      No training records yet.<br>
+      <span style="font-size:13px;color:#cbd5e1">Records will appear here after agents complete the assessment.</span>
+    </div>`;
+  } else {
+    body = `<div class="table-scroll"><table>
+      <thead><tr>
+        <th>#</th><th>Name</th><th>Emp ID</th><th>Country</th><th>Trainer</th>
+        <th>Score</th><th>%</th><th>Result</th><th>Date</th>
+      </tr></thead>
+      <tbody>${list.map((p,i)=>{
+        const bg = p.pct>=PASS_PCT ? "#dcfce7" : "#fee2e2";
+        const cl = p.pct>=PASS_PCT ? "#166534" : "#991b1b";
+        return `<tr>
+          <td style="color:#94a3b8">${i+1}</td>
+          <td style="font-weight:600">${esc(p.name)}</td>
+          <td>${esc(p.empId)}</td>
+          <td>${esc(p.country)}</td>
+          <td>${esc(p.trainer)}</td>
+          <td style="font-weight:700">${p.marks}/${p.max}</td>
+          <td><span class="pct-pill" style="background:${bg};color:${cl}">${p.pct}%</span></td>
+          <td><strong style="color:${cl}">${p.passed?"PASSED":"FAILED"}</strong></td>
+          <td style="color:#94a3b8;white-space:nowrap;font-size:12px">${esc(p.date)}</td>
+        </tr>`;
+      }).join("")}</tbody></table></div>`;
+  }
+ 
+  return brand + `
+    <div class="admin-wrap">
+      <div class="admin-head">
+        <div class="admin-title">Training Records</div>
+        <div style="display:flex;gap:10px;align-items:center">
+          <span class="count-pill">Total: ${list.length}</span>
+          ${list.length>0 ? `<button class="btn btn-danger btn-sm" onclick="clearRecords()">Clear All</button>` : ""}
+        </div>
+      </div>
+      ${body}
+    </div>
+    ${state.toast ? `<div class="toast">${esc(state.toast)}</div>` : ""}
+  `;
+}
+ 
+/* ---- INSTRUCTIONS ---- */
+function renderInstructions(){
+  const rules = [
+    "You will work through 10 real-world Zendesk tickets covering all Fraud Support scenarios.",
+    "For each ticket, choose the correct Intent, Ticket Reason checkboxes, apply the right Macro, and send a reply.",
+    "Applying the correct Macro is the primary evaluation criterion.",
+    "Once you click 'Complete Ticket', your actions are locked — you cannot revisit that ticket.",
+    "You need at least 80% overall to pass and download your certificate.",
+    "Read the email carefully and follow the standard OT verification protocol for owner tickets."
+  ];
+ 
+  return `
+    <div class="center-wrap">
+      <div class="card card-wide">
+        <div class="login-icon-wrap">
+          <div class="login-icon">
+            <svg width="30" height="30" fill="none" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z" fill="#fff"/></svg>
+          </div>
+        </div>
+        <h1 class="inst-title">Assessment Instructions</h1>
+        <p class="inst-sub">Please review the details below before starting your training</p>
+ 
+        <div class="stat-grid">
+          <div class="stat">
+            <div class="stat-ic">
+              <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24"><path d="M19 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.11 0 2-.9 2-2V5c0-1.1-.89-2-2-2zm-9 14l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+            </div>
+            <span class="stat-val">10</span>
+            <span class="stat-lbl">Total Tickets</span>
+          </div>
+          <div class="stat">
+            <div class="stat-ic">
+              <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.2 14.2L11 13V7h1.5v5.2l4.5 2.7-.8 1.3z"/></svg>
+            </div>
+            <span class="stat-val">10</span>
+            <span class="stat-lbl">Marks / Ticket</span>
+          </div>
+          <div class="stat">
+            <div class="stat-ic">
+              <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24"><path d="M11 17h2v-6h-2v6zm1-15C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zM11 9h2V7h-2v2z"/></svg>
+            </div>
+            <span class="stat-val">~25</span>
+            <span class="stat-lbl">Minutes</span>
+          </div>
+          <div class="stat">
+            <div class="stat-ic">
+              <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24"><path d="M12 15.4V17h-1.5v1.5h-1V17H8v-1.5h3.5v-1H9c-.55 0-1-.45-1-1V13c0-.55.45-1 1-1h1.5v-1.5h1V12H14v1.5h-3.5v1H13c.55 0 1 .45 1 1v.5c0 .55-.45 1-1 1h-1zM19 5v14c0 1.1-.9 2-2 2H7c-1.1 0-2-.9-2-2V5c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2z"/></svg>
+            </div>
+            <span class="stat-val">${PASS_PCT}%</span>
+            <span class="stat-lbl">Pass Score</span>
+          </div>
+          <div class="stat">
+            <div class="stat-ic">
+              <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-2 12H6v-2h12v2zm0-3H6V9h12v2zm0-3H6V6h12v2z"/></svg>
+            </div>
+            <span class="stat-val">100</span>
+            <span class="stat-lbl">Total Marks</span>
+          </div>
+          <div class="stat">
+            <div class="stat-ic">
+              <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24"><path d="M9 21c0 .55.45 1 1 1h4c.55 0 1-.45 1-1v-1H9v1zm3-19C8.14 2 5 5.14 5 9c0 2.38 1.19 4.47 3 5.74V17c0 .55.45 1 1 1h6c.55 0 1-.45 1-1v-2.26c1.81-1.27 3-3.36 3-5.74 0-3.86-3.14-7-7-7z"/></svg>
+            </div>
+            <span class="stat-val">📜</span>
+            <span class="stat-lbl">Certificate</span>
+          </div>
+        </div>
+ 
+        <div class="rules">
+          <h4>📌 Rules &amp; Grading</h4>
+          ${rules.map(r=>`<div class="rule"><div class="rule-dot"></div><div>${r}</div></div>`).join("")}
+          <div class="rule" style="margin-top:12px;padding-top:12px;border-top:1px dashed #cbd5e1">
+            <div class="rule-dot" style="background:var(--warn)"></div>
+            <div><strong>Scoring per ticket:</strong> Correct Macro <strong>7 marks</strong> · Correct Ticket Reason <strong>2 marks</strong> · Reply sent <strong>1 mark</strong> = <strong>10 marks</strong></div>
+          </div>
+        </div>
+ 
+        <div style="display:flex;gap:12px;flex-wrap:wrap">
+          <button class="btn btn-outline" style="flex:1;min-width:140px" onclick="go('login')">← Back</button>
+          <button class="btn btn-primary" style="flex:2;min-width:200px" onclick="startQuiz()">Start Assessment →</button>
+        </div>
+      </div>
+    </div>
+    ${state.toast ? `<div class="toast">${esc(state.toast)}</div>` : ""}
+  `;
+}
+ 
+/* ---- QUIZ HEADER ---- */
+function brandHeader(sub, right){
+  return `<header class="app-header">
+    <div class="brand">
+      <div class="brand-ic">FS</div>
+      <div>
+        <div class="brand-txt">Fraud Support Simulator</div>
+        <span class="brand-sub">${esc(sub||"")}</span>
+      </div>
+    </div>
+    ${right || ""}
+  </header>`;
+}
+ 
+/* ---- QUIZ ---- */
+function renderQuiz(){
+  const q = QUESTIONS[state.qi];
+  if(!state.ticket) initTicketState(q);
+  const t = state.ticket;
+ 
+  const progress = ((state.qi) / QUESTIONS.length) * 100;
+  const totalMarksSoFar = state.results.reduce((s,r)=>s+r.marks,0);
+ 
+  const headerRight = `
+    <div class="header-right">
+      <div class="header-item">Ticket <strong>${state.qi+1}/${QUESTIONS.length}</strong></div>
+      <div class="header-progress"><div style="width:${progress}%"></div></div>
+      <div class="header-item">Score <strong>${totalMarksSoFar}</strong></div>
+      <span class="timer-chip" id="timer">⏱ ${fmtTime(state.timer)}</span>
+    </div>
+  `;
+  const header = brandHeader("Content Moderation Assessment", headerRight);
+ 
+  // build option lists
+  const asgOpts = ASSIGNEES.map(a=>`<option value="${esc(a)}"${a===t.assignee?" selected":""}>${esc(a)}</option>`).join("");
+  if(!ASSIGNEES.includes(t.assignee)){
+    // custom assignee (from take-it)
+    // add on top
+  }
+  const asgSelectHtml = `<select class="zd-sel" onchange="setAssignee(this.value)">
+    ${!ASSIGNEES.includes(t.assignee) ? `<option value="${esc(t.assignee)}" selected>${esc(t.assignee)}</option>`:""}
+    ${asgOpts}
+  </select>`;
+ 
+  const formOpts = ["Ticket","Owner Ticket","User Ticket","Escalation Form"]
+    .map(f=>`<option value="${esc(f)}"${f===t.form?" selected":""}>${esc(f)}</option>`).join("");
+ 
+  const intentOpts = INTENTS.map(i=>`<option value="${esc(i)}"${i===t.intent?" selected":""}>${esc(i)}</option>`).join("");
+  const priorityOpts = PRIORITIES.map(p=>`<option value="${esc(p)}"${p===t.priority?" selected":""}>${esc(p)}</option>`).join("");
+  const langOpts = LANGUAGES.map(l=>`<option value="${esc(l)}"${l===t.language?" selected":""}>${esc(l)}</option>`).join("");
+ 
+  const tags = t.tags.length
+    ? t.tags.map((tg,i)=>`<span class="tag">${esc(tg)} <span class="x" onclick="removeTag(${i})" title="Remove">×</span></span>`).join("")
+    : `<span style="color:#94a3b8;font-size:11px">No tags</span>`;
+ 
+  const reasons = TICKET_REASONS.map((r,i)=>`
+    <div class="check-row">
+      <input type="checkbox" id="r-${i}" ${t.reasonChecks[i]?"checked":""} onchange="toggleReason(${i})">
+      <label for="r-${i}">${esc(r)}</label>
+    </div>`).join("");
+ 
+  // messages
+  const messages = t.messages.map(m=>{
+    if(m.type === "in"){
+      return `<div class="msg-in">
+        <div class="msg-head">
+          <div class="avatar">${esc(m.initial)}</div>
+          <div class="msg-from">${esc(m.from)}</div>
+          <div class="msg-time">${esc(m.time)}</div>
+        </div>
+        <div class="msg-body">${esc(m.body)}</div>
+      </div>`;
+    } else if(m.type === "internal"){
+      return `<div class="msg-internal">
+        <div class="msg-head">
+          <div class="avatar" style="background:${'#'}f59e0b">${esc(m.initial)}</div>
+          <div class="msg-from">${esc(m.from)}</div>
+          <span class="tag-int">Internal Note</span>
+          <div class="msg-time">${esc(m.time)}</div>
+        </div>
+        <div class="msg-body">${esc(m.body)}</div>
+      </div>`;
+    } else {
+      return `<div class="msg-public">
+        <div class="msg-head">
+          <div class="avatar">${esc(m.initial)}</div>
+          <div class="msg-from">${esc(m.from)}</div>
+          <span class="tag-pub">Public Reply</span>
+          <div class="msg-time">${esc(m.time)}</div>
+        </div>
+        <div class="msg-body">${esc(m.body)}</div>
+      </div>`;
+    }
+  }).join("");
+ 
+  // macro menu
+  const macroMenu = state.macroOpen ? `<div class="macro-menu">
+    ${MACROS.map((m,i)=>`<div class="macro-item" onclick="applyMacro(${i})">
+      <div class="m-title">${esc(m.name)}</div>
+      <div class="m-desc">${esc(m.desc)}</div>
+    </div>`).join("")}
+  </div>` : "";
+ 
+  // send menu (Internal / Public)
+  const sendMenu = state.replyMenuOpen ? `<div class="send-menu-drop">
+    <div class="send-opt" onclick="sendReply('internal')">
+      <span class="ic-dot" style="background:#f59e0b"></span>
+      <div><div style="font-weight:600">Send as Internal Note</div><div style="font-size:11px;color:#94a3b8">Visible only to agents</div></div>
+    </div>
+    <div class="send-opt" onclick="sendReply('public')">
+      <span class="ic-dot" style="background:${'#'}3282b8"></span>
+      <div><div style="font-weight:600">Send as Public Reply</div><div style="font-size:11px;color:#94a3b8">Visible to the customer</div></div>
+    </div>
+  </div>` : "";
+ 
+  // interaction card (below right panel)
+  const interactionTime = pastTime(rand(1,72));
+ 
+  return header + `
+    <div class="quiz-wrap">
+      <div class="ticket-note">
+        <span style="font-size:16px">🎯</span>
+        <div><strong>Ticket ${state.qi+1} of ${QUESTIONS.length}</strong> — Review the ticket carefully and take the appropriate action using the tools below. Apply the correct macro, check relevant ticket reasons, and send a reply before clicking Complete Ticket.</div>
+      </div>
+ 
+      <div class="ticket">
+        <div class="tk-topbar">
+          <span style="font-weight:700;color:#fff">Support</span>
+          <span class="tk-topbar-tab">
+            <svg width="13" height="13" fill="#9ca3af" viewBox="0 0 24 24"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>
+            Request from: ${esc(q.requesterName.split(" ")[0].toLowerCase())}
+            <span style="color:#9ca3af">#${esc(q.ticketId)}</span>
+          </span>
+        </div>
+        <div class="tk-orgbar">
+          <span>Organization (create) · <strong style="color:#334155">${esc(q.requester)}</strong></span>
+          <span class="badge-open">Open</span>
+          <span>Question #${q.id}</span>
+        </div>
+ 
+        <div class="tk-body">
+          <!-- LEFT PANEL -->
+          <div class="tk-left">
+            <div class="side-group">
+              <label class="side-lbl">Requester</label>
+              <div class="req-display">👤 ${esc(q.requester)}</div>
+            </div>
+ 
+            <div class="side-group">
+              <label class="side-lbl">Assignee* <span class="take-it" onclick="takeIt()">take it</span></label>
+              ${asgSelectHtml}
+            </div>
+ 
+            <div class="side-group">
+              <label class="side-lbl">Form</label>
+              <select class="zd-sel" onchange="setForm(this.value)">${formOpts}</select>
+            </div>
+ 
+            <div class="side-group">
+              <label class="side-lbl">Tags</label>
+              <div class="tag-box">${tags}</div>
+            </div>
+ 
+            <div class="side-group">
+              <label class="side-lbl">Intent</label>
+              <select class="zd-sel" onchange="setIntent(this.value)">${intentOpts}</select>
+            </div>
+ 
+            <div class="side-group">
+              <div class="check-row">
+                <input type="checkbox" id="gdpr" ${t.gdpr?"checked":""} onchange="toggleGdpr()">
+                <label for="gdpr">GDPR Request</label>
+              </div>
+            </div>
+ 
+            <div class="side-group">
+              <label class="side-lbl">Priority</label>
+              <select class="zd-sel" onchange="setPriority(this.value)">${priorityOpts}</select>
+            </div>
+ 
+            <div class="side-group">
+              <label class="side-lbl">Language</label>
+              <select class="zd-sel" onchange="setLanguage(this.value)">${langOpts}</select>
+            </div>
+ 
+            <div class="side-group">
+              <div class="check-row">
+                <input type="checkbox" id="vac" ${t.vacation?"checked":""} onchange="toggleVacation()">
+                <label for="vac">Vacation Rental</label>
+              </div>
+            </div>
+ 
+            <div class="side-group">
+              <label class="side-lbl">Location ID</label>
+              <input class="zd-input" value="${esc(t.locationId)}" oninput="setLocationId(event)" placeholder="7-digit ID">
+            </div>
+ 
+            <div class="side-group">
+              <label class="side-lbl">Review ID / Add Loc / ZD ID</label>
+              <input class="zd-input" value="${esc(t.reviewId)}" oninput="setReviewId(event)" placeholder="10-digit ID">
+            </div>
+ 
+            <div class="side-group">
+              <label class="side-lbl">Ticket Reason</label>
+              <div class="reason-box">${esc(t.ticketReasonText)}</div>
+              ${reasons}
+            </div>
+ 
+            <div class="side-group">
+              <label class="side-lbl">Template ID</label>
+              <input class="zd-input" value="${esc(t.templateId)}" oninput="setTemplateId(event)" placeholder="Template ID">
+            </div>
+          </div>
+ 
+          <!-- CENTER: email thread + composer -->
+          <div class="tk-center">
+            <div class="req-title">Request from: ${esc(q.requester)}</div>
+            <div class="refid">#${esc(q.ticketId)} · ${esc(q.refId)}</div>
+            <div class="meta-row">
+              <span>Via email</span>
+              <span>·</span>
+              <span>Topic: <span class="topic">${esc(q.topic)}</span></span>
+            </div>
+ 
+            <div class="thread" id="thread">
+              ${messages}
+            </div>
+ 
+            <div class="composer">
+              <textarea id="reply-textarea" placeholder="Type your reply here... You can also apply a macro from below to auto-fill a template."
+                oninput="setReply(event)">${esc(state.reply)}</textarea>
+              <div class="composer-actions">
+                <button class="btn btn-ghost btn-sm" onclick="state.reply='';render()" ${!state.reply?"disabled":""}>Clear</button>
+                <div class="send-menu">
+                  <button class="btn btn-primary btn-sm" onclick="toggleReplyMenu()">
+                    Send ▾
+                  </button>
+                  ${sendMenu}
+                </div>
+              </div>
+            </div>
+          </div>
+ 
+          <!-- RIGHT PANEL -->
+          <div class="tk-right">
+            <div class="r-person">
+              <div class="r-avatar">👤</div>
+              <div class="r-name">${esc(q.requesterName)}</div>
+            </div>
+ 
+            <div class="r-item">
+              <div class="r-lbl-sm">Email</div>
+              <div class="r-val">${esc(q.requester)}</div>
+            </div>
+            <div class="r-item">
+              <div class="r-lbl-sm">Local time</div>
+              <div class="r-val">${esc(nowTime())}</div>
+            </div>
+            <div class="r-item">
+              <div class="r-lbl-sm">Language</div>
+              <div class="r-val">${esc(t.language)}</div>
+            </div>
+            <div class="r-item">
+              <div class="r-lbl-sm">Notes</div>
+              <textarea class="notes-area" placeholder="Add user notes" oninput="setNotes(event)">${esc(t.notes)}</textarea>
+            </div>
+ 
+            <div class="interaction-card">
+              <div class="interaction-title">Interaction · <span style="color:#3282b8;cursor:pointer">↻</span></div>
+              <div class="interaction-item">
+                <div class="ii-dot"></div>
+                <div class="ii-body">
+                  <div class="ii-title">Request from: ${esc(q.requester.split("@")[0].slice(0,10))}...</div>
+                  <div class="ii-meta">${esc(interactionTime)} · <strong style="color:${'#'}dc2626">Open</strong></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+ 
+        <!-- BOTTOM MACRO BAR -->
+        <div class="tk-bottom">
+          <div class="macro-wrap">
+            <button class="macro-btn" onclick="toggleMacro()">
+              📋 Apply macro ${t.appliedMacro ? `<span style="color:${'#'}22c55e;font-weight:700">✓ ${esc(t.appliedMacro)}</span>` : "▾"}
+            </button>
+            ${macroMenu}
+          </div>
+          <div class="next-btn-wrap">
+            <button class="btn btn-primary" onclick="completeTicket()">
+              ${state.qi < QUESTIONS.length - 1 ? "Complete Ticket → Next" : "Complete &amp; View Results →"}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+    ${state.toast ? `<div class="toast">${esc(state.toast)}</div>` : ""}
+  `;
+}
+ 
+/* ---- RESULTS ---- */
+function renderResults(){
+  const totalMarks = state.results.reduce((s,r)=>s+r.marks, 0);
+  const maxMarks = QUESTIONS.length * 10;
+  const pct = Math.round((totalMarks/maxMarks) * 100);
+  const passed = pct >= PASS_PCT;
+  const u = state.user;
+ 
+  const header = brandHeader("Assessment Complete", `<div class="header-right"><button class="btn btn-outline btn-sm" onclick="newSession()">New Session</button></div>`);
+ 
+  const responses = state.results.map((r,i)=>`
+    <div class="resp-item ${r.macroCorrect?'correct':'wrong'}">
+      <div class="resp-ic ${r.macroCorrect?'correct':'wrong'}">${r.macroCorrect?'✓':'✗'}</div>
+      <div class="resp-body">
+        <div class="resp-topic">Ticket ${i+1}: ${esc(r.topic)} <span style="color:#94a3b8;font-weight:400;font-size:12px">· #${esc(r.ticketId)}</span></div>
+        <div class="resp-meta">Marks earned: <strong style="color:${r.marks>=7?'#166534':r.marks>=4?'#854d0e':'#991b1b'}">${r.marks}/10</strong> · Time: ${fmtTime(r.time)}</div>
+        <div class="resp-detail">
+          <div><strong>Applied macro:</strong> ${esc(r.appliedMacro)}${r.macroCorrect?" ✓":""} ${!r.macroCorrect ? `<span style="color:${'#'}dc2626"> · Expected: <strong>${esc(r.correctMacro)}</strong></span>`:""}</div>
+          <div><strong>Ticket reasons checked:</strong> ${r.checkedReasons.length ? esc(r.checkedReasons.join(", ")) : "(none)"}</div>
+          <div><strong>Reply sent:</strong> ${r.sentReply?"Yes":"No"}</div>
+        </div>
+      </div>
+    </div>
+  `).join("");
+ 
+  const grade = pct >= 95 ? "Excellent" : pct >= 90 ? "Outstanding" : pct >= 85 ? "Very Good" : pct >= 80 ? "Good" : "Below Passing";
+ 
+  const certPreview = `
+    <div class="certificate">
+      <div class="cert-brand">TRIPADVISOR · FRAUD SUPPORT</div>
+      <div class="cert-title" style="background:linear-gradient(135deg,${'#'}f4d78f,${'#'}c9a747);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent">Certificate of Completion</div>
+      <div class="cert-line"></div>
+      <div class="cert-sub">This is to certify that</div>
+      <div class="cert-name">${esc(u.name)}</div>
+      <div class="cert-meta">Employee ID: ${esc(u.empId)}   ·   ${esc(u.country)}</div>
+      <div class="cert-sub">has successfully completed the</div>
+      <div class="cert-course">Content Moderation Assessment</div>
+      <div style="text-align:center;color:${'#'}bbe1fa;font-size:12px;font-style:italic;margin-top:-14px">Fraud Support · Zendesk Simulator Training</div>
+ 
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-top:24px;padding-top:20px;border-top:1px solid rgba(50,130,184,.4)">
+        <div class="cert-score-block" style="margin:0">
+          <div style="font-size:11px;color:${'#'}bbe1fa;letter-spacing:1px">FINAL SCORE</div>
+          <div class="cert-score-num" style="margin-top:8px;font-size:32px">${totalMarks}/${maxMarks}</div>
+        </div>
+        <div class="cert-score-block" style="margin:0">
+          <div style="font-size:11px;color:${'#'}bbe1fa;letter-spacing:1px">PERCENTAGE</div>
+          <div class="cert-score-num" style="margin-top:8px;font-size:32px;color:${'#'}f4d78f">${pct}%</div>
+        </div>
+        <div class="cert-score-block" style="margin:0">
+          <div style="font-size:11px;color:${'#'}bbe1fa;letter-spacing:1px">GRADE</div>
+          <div class="cert-score-num" style="margin-top:8px;font-size:22px">${grade}</div>
+        </div>
+      </div>
+ 
+      <div class="cert-footer">
+        <div><div>TRAINER</div><div class="val">${esc(u.trainer)}</div></div>
+        <div><div>DATE</div><div class="val">${new Date().toLocaleDateString()}</div></div>
+        <div><div>ISSUED BY</div><div class="val">Sutherland · Tripadvisor</div></div>
+      </div>
+    </div>
+  `;
+ 
+  return header + `
+    <div class="results-wrap">
+      <div class="result-hero">
+        <div class="result-badge ${passed?'pass':'fail'}">
+          <div class="result-score">${totalMarks}</div>
+          <div class="result-total">out of ${maxMarks} marks</div>
+          <div class="result-pct">${pct}%</div>
+        </div>
+        <div class="result-msg" style="color:${passed?'#166534':'#991b1b'}">
+          ${passed ? "🎉 Congratulations! You have PASSED the assessment." : "You did not meet the passing score."}
+        </div>
+        <div class="result-sub">Grade: <strong>${grade}</strong> · Required to pass: <strong>${PASS_PCT}%</strong></div>
+        <div class="required-pill">
+          ${passed ? "✓ Certificate unlocked" : "🔒 Certificate locked — need "+PASS_PCT+"% to download"}
+        </div>
+      </div>
+ 
+      <div style="background:#fff;border-radius:12px;padding:24px;box-shadow:0 2px 8px rgba(0,0,0,.06);margin-bottom:24px">
+        <h3 style="font-size:16px;font-weight:700;color:var(--navy);margin-bottom:14px">📋 Your Responses</h3>
+        <div class="response-list">${responses}</div>
+      </div>
+ 
+      <h3 style="font-size:18px;font-weight:700;color:var(--navy);margin:24px 0 6px;text-align:center">Your Certificate</h3>
+      <div style="text-align:center;color:var(--muted);font-size:13px;margin-bottom:8px">
+        ${passed ? "Your certificate is ready. Click below to download the high-quality version." : "Score at least "+PASS_PCT+"% on your next attempt to unlock the download."}
+      </div>
+      ${certPreview}
+ 
+      <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:20px">
+        ${passed
+          ? `<button class="btn btn-primary" style="flex:1;min-width:220px" onclick="downloadCert()">
+              <svg width="18" height="18" fill="currentColor" viewBox="0 0 24 24" style="margin-right:6px"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
+              Download Certificate
+            </button>`
+          : `<button class="btn btn-primary" disabled style="flex:1;min-width:220px">🔒 Download Locked (Need ${PASS_PCT}%)</button>`}
+        <button class="btn btn-outline" style="flex:1;min-width:180px" onclick="newSession()">Start New Session</button>
+      </div>
+    </div>
+    ${state.toast ? `<div class="toast">${esc(state.toast)}</div>` : ""}
+  `;
+}
+ 
+/* ============================================================
+   POST-RENDER BINDING
+   ============================================================ */
+function bindAfterRender(){
+  if(state.screen === "login"){
+    const n = $("in-name"); if(n){ n.addEventListener("input", onNameInput); }
+    const id = $("in-empId"); if(id){ id.addEventListener("input", onEmpIdInput); }
+    const c = $("in-country"); if(c){ c.addEventListener("change", onCountryChange); }
+    const tr = $("in-trainer"); if(tr){
+      tr.addEventListener("input", onTrainerInput);
+      tr.addEventListener("keydown", e=>{ if(e.key==="Enter") handleLogin(); });
+    }
+    const pw = $("admin-pw"); if(pw){
+      pw.addEventListener("input", e=>{ state.adminPw = e.target.value; });
+      pw.addEventListener("keydown", e=>{ if(e.key==="Enter") submitAdminPw(); });
+    }
+  }
+  if(state.screen === "quiz"){
+    // scroll thread to bottom on render (in case a new message was added)
+    const t = $("thread"); if(t) t.scrollTop = t.scrollHeight;
+  }
+}
+ 
+/* ============================================================
+   BOOT
+   ============================================================ */
+render();
+ 
+/* close open menus when clicking elsewhere */
+document.addEventListener("click", (e)=>{
+  const path = e.composedPath ? e.composedPath() : (e.path||[]);
+  const inMacro = path.some(el => el.classList && (el.classList.contains("macro-wrap") || el.classList.contains("macro-menu")));
+  const inSend = path.some(el => el.classList && (el.classList.contains("send-menu") || el.classList.contains("send-menu-drop")));
+  let changed = false;
+  if(state.macroOpen && !inMacro){ state.macroOpen = false; changed = true; }
+  if(state.replyMenuOpen && !inSend){ state.replyMenuOpen = false; changed = true; }
+  if(changed) render();
+}, true);
+</script>
+</body>
+</html>
+ 
+
+
+
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Fraud Support Zendesk Simulator</title>
